@@ -374,7 +374,7 @@ export default function ShoppingListScreen() {
             </View>
 
             {suggestions.length > 0 && (
-              <View style={styles.suggestionCard}>
+              <View style={styles.sectionCard}>
                 <Text style={styles.sectionTitle}>Shopping Suggestions</Text>
                 <Text style={styles.sectionSubtitle}>
                   Ingredients sent from your Meals screen
@@ -392,17 +392,17 @@ export default function ShoppingListScreen() {
 
                     <View style={styles.suggestionButtonGroup}>
                       <TouchableOpacity
-                        style={styles.addSingleButton}
+                        style={styles.smallAddButton}
                         onPress={() => addSingleSuggestionToShopping(item.id)}
                       >
-                        <Text style={styles.addSingleButtonText}>Add</Text>
+                        <Text style={styles.smallAddButtonText}>Add</Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity
-                        style={styles.removeSuggestionButton}
+                        style={styles.smallRemoveButton}
                         onPress={() => removeSuggestion(item.id)}
                       >
-                        <Text style={styles.removeSuggestionButtonText}>Remove</Text>
+                        <Text style={styles.smallRemoveButtonText}>Remove</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -410,14 +410,14 @@ export default function ShoppingListScreen() {
 
                 <TouchableOpacity
                   onPress={addSuggestionsToShopping}
-                  style={styles.greenButton}
+                  style={styles.primaryButton}
                 >
-                  <Text style={styles.greenButtonText}>Add Suggestions to Shopping</Text>
+                  <Text style={styles.primaryButtonText}>Add All Suggestions</Text>
                 </TouchableOpacity>
               </View>
             )}
 
-            <View style={styles.manualCard}>
+            <View style={styles.sectionCard}>
               <Text style={styles.sectionTitle}>Add Item Manually</Text>
 
               <TextInput
@@ -428,25 +428,27 @@ export default function ShoppingListScreen() {
                 style={styles.input}
               />
 
-              <TextInput
-                value={newItemQuantity}
-                onChangeText={setNewItemQuantity}
-                placeholder="Quantity"
-                placeholderTextColor={colors.textMuted}
-                keyboardType="numeric"
-                style={styles.input}
-              />
+              <View style={styles.inlineInputsRow}>
+                <TextInput
+                  value={newItemQuantity}
+                  onChangeText={setNewItemQuantity}
+                  placeholder="Qty"
+                  placeholderTextColor={colors.textMuted}
+                  keyboardType="numeric"
+                  style={[styles.input, styles.inlineInput]}
+                />
 
-              <TextInput
-                value={newItemUnit}
-                onChangeText={setNewItemUnit}
-                placeholder="Unit (example: kg, pack, ml)"
-                placeholderTextColor={colors.textMuted}
-                style={styles.input}
-              />
+                <TextInput
+                  value={newItemUnit}
+                  onChangeText={setNewItemUnit}
+                  placeholder="Unit"
+                  placeholderTextColor={colors.textMuted}
+                  style={[styles.input, styles.inlineInput]}
+                />
+              </View>
 
-              <TouchableOpacity onPress={addManualItem} style={styles.greenButton}>
-                <Text style={styles.greenButtonText}>Add Item</Text>
+              <TouchableOpacity onPress={addManualItem} style={styles.primaryButton}>
+                <Text style={styles.primaryButtonText}>Add Item</Text>
               </TouchableOpacity>
             </View>
 
@@ -461,56 +463,82 @@ export default function ShoppingListScreen() {
 
             {group.items.map((item) => (
               <View key={item.id} style={styles.itemCard}>
-                <Text
-                  style={[
-                    styles.itemName,
-                    item.checked && styles.itemNameChecked,
-                  ]}
-                >
-                  {item.name}
-                </Text>
-
-                <View style={styles.quantityRow}>
-                  <TouchableOpacity
-                    onPress={() => changeItemQuantity(item.id, -1)}
-                    style={styles.minusButton}
-                  >
-                    <Text style={styles.quantityButtonText}>-</Text>
-                  </TouchableOpacity>
-
-                  <View style={styles.quantityDisplay}>
-                    <Text style={styles.quantityText}>
+                <View style={styles.itemTopRow}>
+                  <View style={styles.itemTextWrap}>
+                    <Text
+                      style={[
+                        styles.itemName,
+                        item.checked && styles.itemNameChecked,
+                      ]}
+                    >
+                      {item.name}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.itemMeta,
+                        item.checked && styles.itemMetaChecked,
+                      ]}
+                    >
                       {item.quantity} {item.unit}
                     </Text>
                   </View>
 
                   <TouchableOpacity
-                    onPress={() => changeItemQuantity(item.id, 1)}
-                    style={styles.plusButton}
+                    onPress={() => toggleItem(item.id)}
+                    style={[
+                      styles.statusPill,
+                      item.checked ? styles.boughtPill : styles.pendingPill,
+                    ]}
                   >
-                    <Text style={styles.quantityButtonText}>+</Text>
+                    <Text style={styles.statusPillText}>
+                      {item.checked ? "Bought" : "Pending"}
+                    </Text>
                   </TouchableOpacity>
                 </View>
 
-                <View style={styles.actionRow}>
-                  <TouchableOpacity
-                    onPress={() => toggleItem(item.id)}
-                    style={[
-                      styles.flexButton,
-                      item.checked ? styles.boughtButton : styles.defaultButton,
-                    ]}
-                  >
-                    <Text style={styles.buttonText}>
-                      {item.checked ? "Bought" : "Mark Bought"}
-                    </Text>
-                  </TouchableOpacity>
+                <View style={styles.itemBottomRow}>
+                  <View style={styles.compactQuantityControls}>
+                    <TouchableOpacity
+                      onPress={() => changeItemQuantity(item.id, -1)}
+                      style={styles.quantityButton}
+                    >
+                      <Text style={styles.quantityButtonText}>-</Text>
+                    </TouchableOpacity>
 
-                  <TouchableOpacity
-                    onPress={() => deleteItem(item.id)}
-                    style={[styles.flexButton, styles.deleteButton]}
-                  >
-                    <Text style={styles.buttonText}>Delete</Text>
-                  </TouchableOpacity>
+                    <View style={styles.quantityBadge}>
+                      <Text style={styles.quantityBadgeText}>
+                        {item.quantity}
+                      </Text>
+                    </View>
+
+                    <TouchableOpacity
+                      onPress={() => changeItemQuantity(item.id, 1)}
+                      style={styles.quantityButton}
+                    >
+                      <Text style={styles.quantityButtonText}>+</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.itemActionsRight}>
+                    <TouchableOpacity
+                      onPress={() => toggleItem(item.id)}
+                      style={[
+                        styles.smallActionButton,
+                        item.checked ? styles.uncheckButton : styles.checkButton,
+                      ]}
+                    >
+                      <Text style={styles.smallActionButtonText}>
+                        {item.checked ? "Undo" : "Mark"}
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={() => deleteItem(item.id)}
+                      style={[styles.smallActionButton, styles.deleteButton]}
+                    >
+                      <Text style={styles.smallActionButtonText}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             ))}
@@ -537,122 +565,127 @@ const styles = StyleSheet.create({
   },
   heroCard: {
     backgroundColor: colors.surface,
-    borderRadius: 18,
+    borderRadius: 16,
     padding: spacing.lg,
     marginBottom: spacing.lg,
     borderWidth: 1,
     borderColor: colors.border,
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: "800",
     color: colors.text,
-    marginBottom: spacing.xs,
+    marginBottom: 4,
   },
   subtitle: {
     color: colors.textMuted,
-    fontSize: 15,
+    fontSize: 14,
   },
-  suggestionCard: {
+  sectionCard: {
     backgroundColor: colors.surface,
-    borderRadius: 18,
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  manualCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 18,
-    padding: spacing.lg,
+    borderRadius: 16,
+    padding: spacing.md,
     marginBottom: spacing.lg,
     borderWidth: 1,
     borderColor: colors.border,
   },
   sectionTitle: {
     color: colors.text,
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "700",
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
   sectionSubtitle: {
     color: colors.textMuted,
     marginBottom: spacing.md,
-    fontSize: 14,
+    fontSize: 13,
   },
   suggestionRow: {
     backgroundColor: colors.surfaceSoft,
-    borderRadius: 14,
-    padding: spacing.md,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   suggestionTextWrap: {
-    marginBottom: spacing.sm,
+    marginBottom: 8,
   },
   suggestionName: {
     color: colors.text,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "600",
-    marginBottom: spacing.xs,
+    marginBottom: 2,
   },
   suggestionMeta: {
     color: colors.textMuted,
-    fontSize: 13,
+    fontSize: 12,
   },
   suggestionButtonGroup: {
     flexDirection: "row",
     gap: spacing.sm,
   },
-  addSingleButton: {
+  smallAddButton: {
+    flex: 1,
     backgroundColor: colors.success,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
     borderRadius: 10,
-    flex: 1,
+    paddingVertical: 8,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  addSingleButtonText: {
+  smallAddButtonText: {
     color: colors.text,
     fontWeight: "700",
     fontSize: 12,
-    textAlign: "center",
   },
-  removeSuggestionButton: {
+  smallRemoveButton: {
+    flex: 1,
     backgroundColor: colors.danger,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
     borderRadius: 10,
-    flex: 1,
+    paddingVertical: 8,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  removeSuggestionButtonText: {
+  smallRemoveButtonText: {
     color: colors.text,
     fontWeight: "700",
     fontSize: 12,
-    textAlign: "center",
   },
   input: {
     backgroundColor: colors.surfaceSoft,
     color: colors.text,
     borderRadius: 12,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingVertical: 12,
     marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
+    fontSize: 14,
   },
-  greenButton: {
+  inlineInputsRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  inlineInput: {
+    flex: 1,
+  },
+  primaryButton: {
     backgroundColor: colors.success,
-    paddingVertical: spacing.md,
+    paddingVertical: 12,
     borderRadius: 12,
-    marginTop: spacing.xs,
+    marginTop: 2,
   },
-  greenButtonText: {
+  primaryButtonText: {
     color: colors.text,
     textAlign: "center",
     fontWeight: "700",
+    fontSize: 14,
   },
   secondaryButton: {
     backgroundColor: colors.surface,
-    padding: spacing.md,
+    paddingVertical: 12,
+    paddingHorizontal: spacing.md,
     borderRadius: 14,
     marginBottom: spacing.lg,
     borderWidth: 1,
@@ -662,103 +695,143 @@ const styles = StyleSheet.create({
     color: colors.text,
     textAlign: "center",
     fontWeight: "700",
+    fontSize: 14,
   },
   groupWrap: {
     marginBottom: spacing.lg,
   },
   groupTitle: {
     color: colors.primary,
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "700",
     marginBottom: spacing.sm,
   },
   itemCard: {
     backgroundColor: colors.surface,
-    borderRadius: 18,
-    padding: spacing.lg,
-    marginBottom: spacing.sm,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: colors.border,
   },
+  itemTopRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  itemTextWrap: {
+    flex: 1,
+    paddingRight: spacing.sm,
+  },
   itemName: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: "700",
     color: colors.text,
-    marginBottom: spacing.sm,
+    marginBottom: 3,
   },
   itemNameChecked: {
     textDecorationLine: "line-through",
     color: colors.textMuted,
   },
-  quantityRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: spacing.md,
+  itemMeta: {
+    fontSize: 12,
+    color: colors.textMuted,
+    fontWeight: "500",
   },
-  minusButton: {
+  itemMetaChecked: {
+    color: colors.textMuted,
+  },
+  statusPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  pendingPill: {
     backgroundColor: colors.surfaceSoft,
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
   },
-  plusButton: {
+  boughtPill: {
     backgroundColor: colors.success,
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
   },
-  quantityButtonText: {
+  statusPillText: {
     color: colors.text,
-    fontSize: 20,
+    fontSize: 11,
     fontWeight: "700",
   },
-  quantityDisplay: {
-    flex: 1,
-    marginHorizontal: spacing.sm,
+  itemBottomRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+  },
+  compactQuantityControls: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  quantityButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
     backgroundColor: colors.surfaceSoft,
-    borderRadius: 12,
-    paddingVertical: spacing.md,
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
     borderColor: colors.border,
   },
-  quantityText: {
+  quantityButtonText: {
     color: colors.text,
-    textAlign: "center",
+    fontSize: 18,
     fontWeight: "700",
-    fontSize: 16,
+    lineHeight: 20,
   },
-  actionRow: {
-    flexDirection: "row",
-  },
-  flexButton: {
-    paddingVertical: spacing.md,
-    borderRadius: 12,
-    flex: 1,
-  },
-  defaultButton: {
+  quantityBadge: {
+    minWidth: 42,
+    height: 32,
+    borderRadius: 10,
     backgroundColor: colors.surfaceSoft,
-    marginRight: spacing.xs,
+    alignItems: "center",
+    justifyContent: "center",
+    marginHorizontal: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 10,
   },
-  boughtButton: {
+  quantityBadgeText: {
+    color: colors.text,
+    fontWeight: "700",
+    fontSize: 13,
+  },
+  itemActionsRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  smallActionButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 10,
+    minWidth: 64,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkButton: {
+    backgroundColor: colors.surfaceSoft,
+  },
+  uncheckButton: {
     backgroundColor: colors.success,
-    marginRight: spacing.xs,
   },
   deleteButton: {
     backgroundColor: colors.danger,
-    marginLeft: spacing.xs,
   },
-  buttonText: {
+  smallActionButtonText: {
     color: colors.text,
-    textAlign: "center",
     fontWeight: "700",
+    fontSize: 12,
   },
   emptyCard: {
     backgroundColor: colors.surface,
-    borderRadius: 18,
+    borderRadius: 16,
     padding: spacing.xl,
     borderWidth: 1,
     borderColor: colors.border,
@@ -766,5 +839,6 @@ const styles = StyleSheet.create({
   emptyText: {
     color: colors.textMuted,
     textAlign: "center",
+    fontSize: 14,
   },
 });

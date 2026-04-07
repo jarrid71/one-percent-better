@@ -1,43 +1,97 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-    Alert,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
-import colors from "@/constants/colors";
-import spacing from "@/constants/spacing";
-import { Meal, MealIngredient } from "../../types/meal";
+import { COLORS } from "@/constants/colors";
+import { SPACING } from "@/constants/spacing";
+import { Ingredient, Meal } from "@/types/meal";
+import { getIngredientCategory } from "@/utils/getIngredientCategory";
+
 type AddMealModalProps = {
   visible: boolean;
   onClose: () => void;
   onSave: (meal: Meal) => void;
+  editingMeal?: Meal | null;
 };
-
-const categoryOptions = ["Protein", "Pantry", "Fridge", "Freezer", "Other"];
 
 export default function AddMealModal({
   visible,
   onClose,
   onSave,
+  editingMeal = null,
 }: AddMealModalProps) {
+  const isEditing = useMemo(() => !!editingMeal, [editingMeal]);
+
   const [mealName, setMealName] = useState("");
   const [ingredientName, setIngredientName] = useState("");
   const [ingredientAmount, setIngredientAmount] = useState("");
-  const [ingredientCategory, setIngredientCategory] = useState("Protein");
-  const [ingredients, setIngredients] = useState<MealIngredient[]>([]);
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+
+  useEffect(() => {
+    if (visible) {
+      if (editingMeal) {
+        setMealName(editingMeal.name);
+        setIngredients(editingMeal.ingredients);
+      } else {
+        resetForm();
+      }
+    }
+  }, [visible, editingMeal]);
 
   function resetForm() {
     setMealName("");
     setIngredientName("");
     setIngredientAmount("");
-    setIngredientCategory("Protein");
     setIngredients([]);
+  }
+
+  function handleAddIngredient() {
+    const trimmedName = ingredientName.trim();
+    const trimmedAmount = ingredientAmount.trim();
+
+    if (!trimmedName || !trimmedAmount) {
+      return;
+    }
+
+    const newIngredient: Ingredient = {
+      id: `${Date.now()}-${Math.random()}`,
+      name: trimmedName,
+      amount: trimmedAmount,
+      category: getIngredientCategory(trimmedName),
+    };
+
+    setIngredients((prev) => [...prev, newIngredient]);
+    setIngredientName("");
+    setIngredientAmount("");
+  }
+
+  function handleRemoveIngredient(id: string) {
+    setIngredients((prev) => prev.filter((ingredient) => ingredient.id !== id));
+  }
+
+  function handleSaveMeal() {
+    const trimmedMealName = mealName.trim();
+
+    if (!trimmedMealName || ingredients.length === 0) {
+      return;
+    }
+
+    const meal: Meal = {
+      id: editingMeal?.id ?? `${Date.now()}-${Math.random()}`,
+      name: trimmedMealName,
+      ingredients,
+    };
+
+    onSave(meal);
+    resetForm();
+    onClose();
   }
 
   function handleClose() {
@@ -45,149 +99,83 @@ export default function AddMealModal({
     onClose();
   }
 
-  function handleAddIngredient() {
-    if (!ingredientName.trim() || !ingredientAmount.trim()) {
-      Alert.alert("Missing info", "Please enter an ingredient name and amount.");
-      return;
-    }
-
-    const newIngredient: MealIngredient = {
-      id: Date.now().toString() + Math.random().toString(36).slice(2, 7),
-      name: ingredientName.trim(),
-      amount: ingredientAmount.trim(),
-      category: ingredientCategory,
-    };
-
-    setIngredients((currentIngredients) => [...currentIngredients, newIngredient]);
-    setIngredientName("");
-    setIngredientAmount("");
-    setIngredientCategory("Protein");
-  }
-
-  function handleRemoveIngredient(ingredientId: string) {
-    setIngredients((currentIngredients) =>
-      currentIngredients.filter((ingredient) => ingredient.id !== ingredientId)
-    );
-  }
-
-  function handleSaveMeal() {
-    if (!mealName.trim()) {
-      Alert.alert("Missing meal name", "Please enter a meal name.");
-      return;
-    }
-
-    if (ingredients.length === 0) {
-      Alert.alert("No ingredients", "Please add at least one ingredient.");
-      return;
-    }
-
-    const newMeal: Meal = {
-      id: Date.now().toString(),
-      name: mealName.trim(),
-      ingredients,
-    };
-
-    onSave(newMeal);
-    resetForm();
-    onClose();
-  }
-
   return (
-    <Modal visible={visible} animationType="slide" transparent>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={handleClose}
+    >
       <View style={styles.overlay}>
         <View style={styles.modalCard}>
-          <Text style={styles.title}>Create Meal</Text>
+          <Text style={styles.title}>
+            {isEditing ? "Edit Meal" : "Add Meal"}
+          </Text>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+          >
             <Text style={styles.label}>Meal Name</Text>
             <TextInput
               value={mealName}
               onChangeText={setMealName}
-              placeholder="Example: Chicken Rice Bowl"
-              placeholderTextColor={colors.textMuted}
+              placeholder="e.g. Chicken rice bowl"
+              placeholderTextColor={COLORS.textSecondary}
               style={styles.input}
             />
 
-            <View style={styles.sectionBlock}>
-              <Text style={styles.sectionTitle}>Add Ingredient</Text>
-
-              <TextInput
-                value={ingredientName}
-                onChangeText={setIngredientName}
-                placeholder="Ingredient name"
-                placeholderTextColor={colors.textMuted}
-                style={styles.input}
-              />
-
-              <TextInput
-                value={ingredientAmount}
-                onChangeText={setIngredientAmount}
-                placeholder="Amount"
-                placeholderTextColor={colors.textMuted}
-                style={styles.input}
-              />
-
-              <Text style={styles.label}>Category</Text>
-              <View style={styles.categoryWrap}>
-                {categoryOptions.map((category) => {
-                  const isSelected = ingredientCategory === category;
-
-                  return (
-                    <TouchableOpacity
-                      key={category}
-                      style={[
-                        styles.categoryButton,
-                        isSelected && styles.categoryButtonSelected,
-                      ]}
-                      onPress={() => setIngredientCategory(category)}
-                    >
-                      <Text
-                        style={[
-                          styles.categoryButtonText,
-                          isSelected && styles.categoryButtonTextSelected,
-                        ]}
-                      >
-                        {category}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              <TouchableOpacity
-                style={styles.addIngredientButton}
-                onPress={handleAddIngredient}
-              >
-                <Text style={styles.addIngredientButtonText}>Add Ingredient</Text>
-              </TouchableOpacity>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>Ingredients</Text>
             </View>
 
-            <View style={styles.sectionBlock}>
-              <Text style={styles.sectionTitle}>Ingredients</Text>
+            <Text style={styles.helperText}>
+              Enter ingredient name and amount. Category is sorted automatically.
+            </Text>
 
-              {ingredients.length === 0 ? (
-                <View style={styles.emptyCard}>
-                  <Text style={styles.emptyText}>No ingredients added yet.</Text>
-                </View>
-              ) : (
-                ingredients.map((ingredient) => (
-                  <View key={ingredient.id} style={styles.ingredientCard}>
-                    <View style={styles.ingredientInfo}>
-                      <Text style={styles.ingredientName}>{ingredient.name}</Text>
-                      <Text style={styles.ingredientMeta}>
-                        {ingredient.amount} • {ingredient.category}
-                      </Text>
-                    </View>
+            <Text style={styles.label}>Ingredient Name</Text>
+            <TextInput
+              value={ingredientName}
+              onChangeText={setIngredientName}
+              placeholder="e.g. Chicken breast"
+              placeholderTextColor={COLORS.textSecondary}
+              style={styles.input}
+            />
 
-                    <TouchableOpacity
-                      style={styles.removeButton}
-                      onPress={() => handleRemoveIngredient(ingredient.id)}
-                    >
-                      <Text style={styles.removeButtonText}>Remove</Text>
-                    </TouchableOpacity>
+            <Text style={styles.label}>Amount</Text>
+            <TextInput
+              value={ingredientAmount}
+              onChangeText={setIngredientAmount}
+              placeholder="e.g. 500g"
+              placeholderTextColor={COLORS.textSecondary}
+              style={styles.input}
+            />
+
+            <TouchableOpacity
+              style={styles.addIngredientButton}
+              onPress={handleAddIngredient}
+            >
+              <Text style={styles.addIngredientButtonText}>Add Ingredient</Text>
+            </TouchableOpacity>
+
+            <View style={styles.ingredientsList}>
+              {ingredients.map((ingredient) => (
+                <View key={ingredient.id} style={styles.ingredientCard}>
+                  <View style={styles.ingredientTextWrap}>
+                    <Text style={styles.ingredientName}>{ingredient.name}</Text>
+                    <Text style={styles.ingredientMeta}>
+                      {ingredient.amount} • {ingredient.category}
+                    </Text>
                   </View>
-                ))
-              )}
+
+                  <TouchableOpacity
+                    onPress={() => handleRemoveIngredient(ingredient.id)}
+                    style={styles.removeButton}
+                  >
+                    <Text style={styles.removeButtonText}>Remove</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
             </View>
           </ScrollView>
 
@@ -197,7 +185,9 @@ export default function AddMealModal({
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.saveButton} onPress={handleSaveMeal}>
-              <Text style={styles.saveButtonText}>Save Meal</Text>
+              <Text style={styles.saveButtonText}>
+                {isEditing ? "Save Changes" : "Save Meal"}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -209,185 +199,136 @@ export default function AddMealModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    padding: SPACING.lg,
   },
-
   modalCard: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: spacing.lg,
+    backgroundColor: COLORS.card,
+    borderRadius: 20,
     maxHeight: "90%",
+    padding: SPACING.lg,
   },
-
+  scrollContent: {
+    paddingBottom: SPACING.md,
+  },
   title: {
-    color: colors.textPrimary,
-    fontSize: 24,
-    fontWeight: "800",
-    marginBottom: spacing.lg,
+    fontSize: 22,
+    fontWeight: "700",
+    color: COLORS.text,
+    marginBottom: SPACING.lg,
   },
-
   label: {
-    color: colors.textSecondary,
     fontSize: 14,
     fontWeight: "600",
-    marginBottom: spacing.xs,
+    color: COLORS.text,
+    marginBottom: 6,
+    marginTop: SPACING.sm,
   },
-
   input: {
-    backgroundColor: colors.surface,
-    color: colors.textPrimary,
+    backgroundColor: COLORS.background,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: COLORS.border,
     borderRadius: 12,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    marginBottom: spacing.md,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     fontSize: 15,
+    color: COLORS.text,
   },
-
-  sectionBlock: {
-    marginBottom: spacing.xl,
+  sectionHeaderRow: {
+    marginTop: SPACING.lg,
+    marginBottom: SPACING.xs,
   },
-
   sectionTitle: {
-    color: colors.textPrimary,
     fontSize: 18,
     fontWeight: "700",
-    marginBottom: spacing.md,
+    color: COLORS.text,
   },
-
-  categoryWrap: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-
-  categoryButton: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-  },
-
-  categoryButtonSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-
-  categoryButtonText: {
-    color: colors.textSecondary,
+  helperText: {
     fontSize: 13,
-    fontWeight: "600",
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.sm,
   },
-
-  categoryButtonTextSelected: {
-    color: colors.textPrimary,
-  },
-
   addIngredientButton: {
-    backgroundColor: colors.primary,
+    marginTop: SPACING.md,
+    backgroundColor: COLORS.primary,
     borderRadius: 12,
-    paddingVertical: spacing.md,
     alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
   },
-
   addIngredientButtonText: {
-    color: colors.textPrimary,
+    color: "#FFFFFF",
     fontSize: 15,
     fontWeight: "700",
   },
-
-  emptyCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
+  ingredientsList: {
+    marginTop: SPACING.lg,
+    gap: SPACING.sm,
   },
-
-  emptyText: {
-    color: colors.textMuted,
-    textAlign: "center",
-    fontSize: 14,
-  },
-
   ingredientCard: {
-    backgroundColor: colors.surfaceSoft,
-    borderRadius: 14,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
+    backgroundColor: COLORS.background,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: SPACING.md,
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    gap: spacing.md,
+    justifyContent: "space-between",
+    gap: SPACING.sm,
   },
-
-  ingredientInfo: {
+  ingredientTextWrap: {
     flex: 1,
   },
-
   ingredientName: {
-    color: colors.textPrimary,
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: "600",
+    color: COLORS.text,
     marginBottom: 4,
   },
-
   ingredientMeta: {
-    color: colors.textSecondary,
     fontSize: 13,
+    color: COLORS.textSecondary,
   },
-
   removeButton: {
-    backgroundColor: colors.danger,
-    borderRadius: 10,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
-
   removeButtonText: {
-    color: colors.textPrimary,
     fontSize: 13,
     fontWeight: "700",
+    color: "#FF6B6B",
   },
-
   footer: {
     flexDirection: "row",
-    gap: spacing.sm,
-    marginTop: spacing.md,
+    gap: SPACING.sm,
+    marginTop: SPACING.md,
   },
-
   cancelButton: {
     flex: 1,
-    backgroundColor: colors.surface,
     borderRadius: 12,
-    paddingVertical: spacing.md,
-    alignItems: "center",
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: COLORS.border,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    backgroundColor: COLORS.background,
   },
-
   cancelButtonText: {
-    color: colors.textPrimary,
+    color: COLORS.text,
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: "600",
   },
-
   saveButton: {
     flex: 1,
-    backgroundColor: colors.success,
     borderRadius: 12,
-    paddingVertical: spacing.md,
     alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    backgroundColor: COLORS.primary,
   },
-
   saveButtonText: {
-    color: colors.textPrimary,
+    color: "#FFFFFF",
     fontSize: 15,
     fontWeight: "700",
   },

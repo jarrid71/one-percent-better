@@ -1,55 +1,99 @@
 import React, { useMemo, useState } from "react";
-import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 import FloatingAddButton from "@/components/common/FloatingAddButton";
 import MyCollapsibleSection from "@/components/common/MyCollapsibleSection";
 import WeeklyPlanner from "@/components/common/WeeklyPlanner";
+import AddMealModal from "@/components/meals/AddMealModal";
 import DashboardCard from "@/components/meals/DashboardCard";
 import MealCard from "@/components/meals/MealCard";
 import { COLORS } from "@/constants/colors";
 import { SPACING } from "@/constants/spacing";
+import { useMeals } from "@/context/MealsContext";
 import { Meal } from "@/types/meal";
 
-const savedMeals: Meal[] = [
-  {
-    id: "1",
-    name: "Chicken Rice Bowl",
-    ingredients: [
-      { id: "1a", name: "Chicken Breast", amount: "200g", category: "Protein" },
-      { id: "1b", name: "Jasmine Rice", amount: "1 cup", category: "Pantry" },
-      { id: "1c", name: "Avocado", amount: "1/2", category: "Fridge" },
-    ],
-  },
-  {
-    id: "2",
-    name: "Steak Wrap",
-    ingredients: [
-      { id: "2a", name: "Steak", amount: "180g", category: "Protein" },
-      { id: "2b", name: "Wrap", amount: "1", category: "Pantry" },
-      { id: "2c", name: "Lettuce", amount: "1 handful", category: "Fridge" },
-    ],
-  },
-  {
-    id: "3",
-    name: "Protein Oats",
-    ingredients: [
-      { id: "3a", name: "Oats", amount: "1 cup", category: "Pantry" },
-      { id: "3b", name: "Protein Powder", amount: "1 scoop", category: "Pantry" },
-      { id: "3c", name: "Banana", amount: "1", category: "Fridge" },
-    ],
-  },
-];
-
 export default function MealsScreen() {
-  const [selectedDay, setSelectedDay] = useState("Mon");
+  const {
+    meals,
+    selectedDay,
+    setSelectedDay,
+    addMeal,
+    updateMeal,
+    deleteMeal,
+    addMealToDay,
+    removeMealFromDay,
+    getMealsForDay,
+    isLoading,
+  } = useMeals();
+
+  const [isMealModalVisible, setIsMealModalVisible] = useState(false);
+  const [editingMeal, setEditingMeal] = useState<Meal | null>(null);
 
   const dailyCalories = 2240;
   const proteinTarget = 180;
-  const plannedMeals = savedMeals.length;
+  const plannedMeals = getMealsForDay(selectedDay).length;
 
   const greeting = useMemo(() => {
     return "Fuel your day";
   }, []);
+
+  const openAddMealModal = () => {
+    setEditingMeal(null);
+    setIsMealModalVisible(true);
+  };
+
+  const openEditMealModal = (meal: Meal) => {
+    setEditingMeal(meal);
+    setIsMealModalVisible(true);
+  };
+
+  const closeMealModal = () => {
+    setEditingMeal(null);
+    setIsMealModalVisible(false);
+  };
+
+  const handleSaveMeal = (mealToSave: Meal) => {
+    if (editingMeal) {
+      updateMeal(mealToSave);
+    } else {
+      addMeal(mealToSave);
+    }
+  };
+
+  const handleDeleteMeal = (mealId: string) => {
+    deleteMeal(mealId);
+    closeMealModal();
+  };
+
+  const toggleMealForSelectedDay = (mealId: string) => {
+    const isAlreadyPlanned = isMealPlannedForSelectedDay(mealId);
+
+    if (isAlreadyPlanned) {
+      removeMealFromDay(selectedDay, mealId);
+    } else {
+      addMealToDay(selectedDay, mealId);
+    }
+  };
+
+  const isMealPlannedForSelectedDay = (mealId: string) => {
+    return getMealsForDay(selectedDay).some((meal) => meal.id === mealId);
+  };
+
+  const plannedMealsForSelectedDay = getMealsForDay(selectedDay);
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Loading meals...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -99,11 +143,86 @@ export default function MealsScreen() {
           />
         </View>
 
+        <MyCollapsibleSection title={`Planned Meals for ${selectedDay}`}>
+          <View style={styles.infoCard}>
+            {plannedMealsForSelectedDay.length === 0 ? (
+              <Text style={styles.infoText}>
+                No meals planned for {selectedDay} yet. Tap a saved meal below to add it.
+              </Text>
+            ) : (
+              <View style={styles.plannedMealsList}>
+                {plannedMealsForSelectedDay.map((meal) => (
+                  <View key={meal.id} style={styles.plannedMealRow}>
+                    <TouchableOpacity
+                      style={styles.plannedMealMain}
+                      activeOpacity={0.8}
+                      onPress={() => openEditMealModal(meal)}
+                    >
+                      <View style={styles.plannedMealTextWrap}>
+                        <Text style={styles.plannedMealName}>{meal.name}</Text>
+                        <Text style={styles.plannedMealMeta}>
+                          {meal.ingredients.length}{" "}
+                          {meal.ingredients.length === 1 ? "ingredient" : "ingredients"}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={() => toggleMealForSelectedDay(meal.id)}
+                      style={styles.removePlannedButton}
+                    >
+                      <Text style={styles.removePlannedButtonText}>Remove</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        </MyCollapsibleSection>
+
         <MyCollapsibleSection title="Saved Meals">
+          <View style={styles.savedMealsHeader}>
+            <Text style={styles.savedMealsHelper}>
+              Tap a meal card to edit it. Use the small button to add or remove it from {selectedDay}.
+            </Text>
+          </View>
+
           <View style={styles.mealsList}>
-            {savedMeals.map((meal) => (
-              <MealCard key={meal.id} meal={meal} />
-            ))}
+            {meals.map((meal) => {
+              const isPlanned = isMealPlannedForSelectedDay(meal.id);
+
+              return (
+                <View key={meal.id} style={styles.savedMealItem}>
+                  <TouchableOpacity
+                    activeOpacity={0.88}
+                    onPress={() => openEditMealModal(meal)}
+                  >
+                    <View style={styles.mealCardWrap}>
+                      <MealCard meal={meal} />
+                      {isPlanned && (
+                        <View style={styles.plannedBadge}>
+                          <Text style={styles.plannedBadgeText}>
+                            Planned for {selectedDay}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => toggleMealForSelectedDay(meal.id)}
+                    style={[
+                      styles.planToggleButton,
+                      isPlanned ? styles.planToggleButtonRemove : styles.planToggleButtonAdd,
+                    ]}
+                  >
+                    <Text style={styles.planToggleButtonText}>
+                      {isPlanned ? `Remove from ${selectedDay}` : `Add to ${selectedDay}`}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
           </View>
         </MyCollapsibleSection>
 
@@ -128,8 +247,14 @@ export default function MealsScreen() {
         </MyCollapsibleSection>
       </ScrollView>
 
-      <FloatingAddButton
-        onPress={() => Alert.alert("Add Meal", "Open your add meal modal here")}
+      <FloatingAddButton onPress={openAddMealModal} />
+
+      <AddMealModal
+        visible={isMealModalVisible}
+        onClose={closeMealModal}
+        onSave={handleSaveMeal}
+        onDelete={handleDeleteMeal}
+        editingMeal={editingMeal}
       />
     </View>
   );
@@ -139,6 +264,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: COLORS.background,
+  },
+  loadingText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.textSecondary,
   },
   scrollContent: {
     padding: SPACING.lg,
@@ -187,6 +323,51 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
     marginTop: SPACING.sm,
   },
+  savedMealsHeader: {
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.sm,
+  },
+  savedMealsHelper: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    lineHeight: 18,
+  },
+  savedMealItem: {
+    gap: SPACING.sm,
+  },
+  mealCardWrap: {
+    position: "relative",
+  },
+  plannedBadge: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  plannedBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  planToggleButton: {
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  planToggleButtonAdd: {
+    backgroundColor: COLORS.primary,
+  },
+  planToggleButtonRemove: {
+    backgroundColor: COLORS.danger,
+  },
+  planToggleButtonText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "700",
+  },
   infoCard: {
     backgroundColor: COLORS.card,
     borderRadius: 18,
@@ -205,5 +386,47 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: COLORS.textSecondary,
+  },
+  plannedMealsList: {
+    gap: SPACING.sm,
+  },
+  plannedMealRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+    backgroundColor: COLORS.background,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  plannedMealMain: {
+    flex: 1,
+  },
+  plannedMealTextWrap: {
+    flex: 1,
+    paddingRight: SPACING.sm,
+  },
+  plannedMealName: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: COLORS.text,
+    marginBottom: 2,
+  },
+  plannedMealMeta: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+  },
+  removePlannedButton: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  removePlannedButtonText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "700",
   },
 });

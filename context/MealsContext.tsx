@@ -1,51 +1,43 @@
-import React, { createContext, ReactNode, useContext, useState } from "react";
-import { Meal } from "../types/meal";
+import { STORAGE_KEYS } from "@/constants/storage";
+import { Meal } from "@/types/meal";
+import { getIngredientCategory } from "@/utils/getIngredientCategory";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+type WeeklyPlan = Record<string, string[]>;
 
 type MealsContextType = {
   meals: Meal[];
+  weeklyPlan: WeeklyPlan;
+  selectedDay: string;
+  setSelectedDay: (day: string) => void;
   addMeal: (meal: Meal) => void;
-  removeMeal: (mealId: string) => void;
+  updateMeal: (updatedMeal: Meal) => void;
+  deleteMeal: (mealId: string) => void;
+  addMealToDay: (day: string, mealId: string) => void;
+  removeMealFromDay: (day: string, mealId: string) => void;
+  getMealsForDay: (day: string) => Meal[];
+  isLoading: boolean;
 };
 
-const starterMeals: Meal[] = [
-  {
-    id: "1",
-    name: "Chicken and rice",
-    ingredients: [
-      { id: "1-1", name: "Chicken breast", amount: "2 pcs", category: "Protein" },
-      { id: "1-2", name: "Rice", amount: "2 cups", category: "Pantry" },
-      { id: "1-3", name: "Broccoli", amount: "1 head", category: "Fridge" },
-    ],
-  },
-  {
-    id: "2",
-    name: "Steak wrap",
-    ingredients: [
-      { id: "2-1", name: "Steak", amount: "300g", category: "Protein" },
-      { id: "2-2", name: "Wraps", amount: "1 pack", category: "Pantry" },
-      { id: "2-3", name: "Lettuce", amount: "1 bag", category: "Fridge" },
-    ],
-  },
-  {
-    id: "3",
-    name: "Eggs on toast",
-    ingredients: [
-      { id: "3-1", name: "Eggs", amount: "6", category: "Fridge" },
-      { id: "3-2", name: "Bread", amount: "1 loaf", category: "Pantry" },
-      { id: "3-3", name: "Butter", amount: "1 tub", category: "Fridge" },
-    ],
-  },
-  {
-    id: "4",
-    name: "Protein oats",
-    ingredients: [
-      { id: "4-1", name: "Oats", amount: "1 bag", category: "Pantry" },
-      { id: "4-2", name: "Protein powder", amount: "1 tub", category: "Pantry" },
-      { id: "4-3", name: "Milk", amount: "2L", category: "Fridge" },
-      { id: "4-4", name: "Bananas", amount: "1 bunch", category: "Fridge" },
-    ],
-  },
-];
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+const defaultWeeklyPlan: WeeklyPlan = {
+  Mon: [],
+  Tue: [],
+  Wed: [],
+  Thu: [],
+  Fri: [],
+  Sat: [],
+  Sun: [],
+};
 
 const MealsContext = createContext<MealsContextType | undefined>(undefined);
 
@@ -53,31 +45,184 @@ type MealsProviderProps = {
   children: ReactNode;
 };
 
+function normalizeMeal(meal: any): Meal {
+  return {
+    id: String(meal.id ?? `${Date.now()}-${Math.random()}`),
+    name: String(meal.name ?? ""),
+    ingredients: Array.isArray(meal.ingredients)
+      ? meal.ingredients.map((ingredient: any, index: number) => {
+          const ingredientName = String(ingredient?.name ?? "").trim();
+          const existingCategory = ingredient?.category;
+
+          return {
+            id: String(
+              ingredient?.id ?? `${meal.id ?? "meal"}-ingredient-${index}`
+            ),
+            name: ingredientName,
+            amount: String(ingredient?.amount ?? ""),
+            category:
+              existingCategory && typeof existingCategory === "string"
+                ? existingCategory
+                : getIngredientCategory(ingredientName),
+          };
+        })
+      : [],
+  };
+}
+
 export function MealsProvider({ children }: MealsProviderProps) {
-  const [meals, setMeals] = useState<Meal[]>(starterMeals);
+  const [meals, setMeals] = useState<Meal[]>([]);
+  const [weeklyPlan, setWeeklyPlan] = useState<WeeklyPlan>(defaultWeeklyPlan);
+  const [selectedDay, setSelectedDay] = useState<string>("Mon");
+  const [isLoading, setIsLoading] = useState(true);
 
-  function addMeal(meal: Meal) {
-    setMeals((currentMeals) => [meal, ...currentMeals]);
-  }
+  useEffect(() => {
+    const loadStoredData = async () => {
+      try {
+        const storedMeals = await AsyncStorage.getItem(STORAGE_KEYS.MEALS);
+        const storedWeeklyPlan = await AsyncStorage.getItem(
+          STORAGE_KEYS.WEEKLY_PLAN
+        );
 
-  function removeMeal(mealId: string) {
-    setMeals((currentMeals) =>
-      currentMeals.filter((meal) => meal.id !== mealId)
+        if (storedMeals) {
+          const parsedMeals = JSON.parse(storedMeals);
+
+          if (Array.isArray(parsedMeals)) {
+            const normalizedMeals = parsedMeals.map(normalizeMeal);
+            setMeals(normalizedMeals);
+          }
+        }
+
+        if (storedWeeklyPlan) {
+          const parsedWeeklyPlan = JSON.parse(storedWeeklyPlan);
+
+          setWeeklyPlan({
+            ...defaultWeeklyPlan,
+            ...parsedWeeklyPlan,
+          });
+        }
+      } catch (error) {
+        console.error("Failed to load meals data from storage:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadStoredData();
+  }, []);
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    const saveMeals = async () => {
+      try {
+        await AsyncStorage.setItem(STORAGE_KEYS.MEALS, JSON.stringify(meals));
+      } catch (error) {
+        console.error("Failed to save meals:", error);
+      }
+    };
+
+    saveMeals();
+  }, [meals, isLoading]);
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    const saveWeeklyPlan = async () => {
+      try {
+        await AsyncStorage.setItem(
+          STORAGE_KEYS.WEEKLY_PLAN,
+          JSON.stringify(weeklyPlan)
+        );
+      } catch (error) {
+        console.error("Failed to save weekly plan:", error);
+      }
+    };
+
+    saveWeeklyPlan();
+  }, [weeklyPlan, isLoading]);
+
+  const addMeal = (meal: Meal) => {
+    setMeals((prev) => [...prev, normalizeMeal(meal)]);
+  };
+
+  const updateMeal = (updatedMeal: Meal) => {
+    const normalizedMeal = normalizeMeal(updatedMeal);
+
+    setMeals((prev) =>
+      prev.map((meal) => (meal.id === normalizedMeal.id ? normalizedMeal : meal))
     );
-  }
+  };
 
-  return (
-    <MealsContext.Provider value={{ meals, addMeal, removeMeal }}>
-      {children}
-    </MealsContext.Provider>
+  const deleteMeal = (mealId: string) => {
+    setMeals((prev) => prev.filter((meal) => meal.id !== mealId));
+
+    setWeeklyPlan((prev) => {
+      const updatedPlan: WeeklyPlan = {};
+
+      for (const day of DAYS) {
+        updatedPlan[day] = (prev[day] || []).filter((id) => id !== mealId);
+      }
+
+      return updatedPlan;
+    });
+  };
+
+  const addMealToDay = (day: string, mealId: string) => {
+    setWeeklyPlan((prev) => {
+      const currentMealsForDay = prev[day] || [];
+
+      if (currentMealsForDay.includes(mealId)) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [day]: [...currentMealsForDay, mealId],
+      };
+    });
+  };
+
+  const removeMealFromDay = (day: string, mealId: string) => {
+    setWeeklyPlan((prev) => ({
+      ...prev,
+      [day]: (prev[day] || []).filter((id) => id !== mealId),
+    }));
+  };
+
+  const getMealsForDay = (day: string) => {
+    const mealIds = weeklyPlan[day] || [];
+
+    return mealIds
+      .map((mealId) => meals.find((meal) => meal.id === mealId))
+      .filter((meal): meal is Meal => Boolean(meal));
+  };
+
+  const value = useMemo(
+    () => ({
+      meals,
+      weeklyPlan,
+      selectedDay,
+      setSelectedDay,
+      addMeal,
+      updateMeal,
+      deleteMeal,
+      addMealToDay,
+      removeMealFromDay,
+      getMealsForDay,
+      isLoading,
+    }),
+    [meals, weeklyPlan, selectedDay, isLoading]
   );
+
+  return <MealsContext.Provider value={value}>{children}</MealsContext.Provider>;
 }
 
 export function useMeals() {
   const context = useContext(MealsContext);
 
-  if (context === undefined) {
-    throw new Error("useMeals must be used inside MealsProvider");
+  if (!context) {
+    throw new Error("useMeals must be used inside a MealsProvider");
   }
 
   return context;
