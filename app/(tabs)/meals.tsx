@@ -147,7 +147,8 @@ export default function MealsScreen() {
           <View style={styles.infoCard}>
             {plannedMealsForSelectedDay.length === 0 ? (
               <Text style={styles.infoText}>
-                No meals planned for {selectedDay} yet. Tap a saved meal below to add it.
+                No meals planned for {selectedDay} yet. Tap a saved meal below to
+                add it.
               </Text>
             ) : (
               <View style={styles.plannedMealsList}>
@@ -162,7 +163,9 @@ export default function MealsScreen() {
                         <Text style={styles.plannedMealName}>{meal.name}</Text>
                         <Text style={styles.plannedMealMeta}>
                           {meal.ingredients.length}{" "}
-                          {meal.ingredients.length === 1 ? "ingredient" : "ingredients"}
+                          {meal.ingredients.length === 1
+                            ? "ingredient"
+                            : "ingredients"}
                         </Text>
                       </View>
                     </TouchableOpacity>
@@ -183,7 +186,8 @@ export default function MealsScreen() {
         <MyCollapsibleSection title="Saved Meals">
           <View style={styles.savedMealsHeader}>
             <Text style={styles.savedMealsHelper}>
-              Tap a meal card to edit it. Use the small button to add or remove it from {selectedDay}.
+              Tap a meal card to edit it. Use the small button to add or remove
+              it from {selectedDay}.
             </Text>
           </View>
 
@@ -213,11 +217,15 @@ export default function MealsScreen() {
                     onPress={() => toggleMealForSelectedDay(meal.id)}
                     style={[
                       styles.planToggleButton,
-                      isPlanned ? styles.planToggleButtonRemove : styles.planToggleButtonAdd,
+                      isPlanned
+                        ? styles.planToggleButtonRemove
+                        : styles.planToggleButtonAdd,
                     ]}
                   >
                     <Text style={styles.planToggleButtonText}>
-                      {isPlanned ? `Remove from ${selectedDay}` : `Add to ${selectedDay}`}
+                      {isPlanned
+                        ? `Remove from ${selectedDay}`
+                        : `Add to ${selectedDay}`}
                     </Text>
                   </TouchableOpacity>
                 </View>

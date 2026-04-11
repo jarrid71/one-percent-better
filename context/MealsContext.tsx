@@ -24,6 +24,7 @@ type MealsContextType = {
   addMealToDay: (day: string, mealId: string) => void;
   removeMealFromDay: (day: string, mealId: string) => void;
   getMealsForDay: (day: string) => Meal[];
+  ingredientSuggestions: string[];
   isLoading: boolean;
 };
 
@@ -198,6 +199,30 @@ export function MealsProvider({ children }: MealsProviderProps) {
       .filter((meal): meal is Meal => Boolean(meal));
   };
 
+  const ingredientSuggestions = useMemo(() => {
+    const uniqueIngredients = new Map<string, string>();
+
+    meals.forEach((meal) => {
+      meal.ingredients.forEach((ingredient) => {
+        const trimmedName = ingredient.name.trim();
+
+        if (!trimmedName) {
+          return;
+        }
+
+        const normalizedKey = trimmedName.toLowerCase();
+
+        if (!uniqueIngredients.has(normalizedKey)) {
+          uniqueIngredients.set(normalizedKey, trimmedName);
+        }
+      });
+    });
+
+    return Array.from(uniqueIngredients.values()).sort((a, b) =>
+      a.localeCompare(b)
+    );
+  }, [meals]);
+
   const value = useMemo(
     () => ({
       meals,
@@ -210,9 +235,10 @@ export function MealsProvider({ children }: MealsProviderProps) {
       addMealToDay,
       removeMealFromDay,
       getMealsForDay,
+      ingredientSuggestions,
       isLoading,
     }),
-    [meals, weeklyPlan, selectedDay, isLoading]
+    [meals, weeklyPlan, selectedDay, ingredientSuggestions, isLoading]
   );
 
   return <MealsContext.Provider value={value}>{children}</MealsContext.Provider>;

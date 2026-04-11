@@ -1,24 +1,21 @@
-import React, { useState } from "react";
+import React from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
+
+type DayKey = (typeof DAYS)[number];
 
 type WeeklyPlannerProps = {
   selectedDay?: string;
   onDayChange?: (day: string) => void;
+  dayCounts?: Partial<Record<DayKey, number>>;
 };
 
 export default function WeeklyPlanner({
   selectedDay = "Mon",
   onDayChange,
+  dayCounts = {},
 }: WeeklyPlannerProps) {
-  const [activeDay, setActiveDay] = useState(selectedDay);
-
-  const handlePress = (day: string) => {
-    setActiveDay(day);
-    onDayChange?.(day);
-  };
-
   return (
     <View style={styles.wrapper}>
       <Text style={styles.heading}>Weekly Planner</Text>
@@ -29,17 +26,22 @@ export default function WeeklyPlanner({
         contentContainerStyle={styles.scrollContent}
       >
         {DAYS.map((day) => {
-          const isActive = activeDay === day;
+          const isActive = selectedDay === day;
+          const count = dayCounts[day] ?? 0;
 
           return (
             <TouchableOpacity
               key={day}
               style={[styles.dayButton, isActive && styles.activeDayButton]}
-              onPress={() => handlePress(day)}
+              onPress={() => onDayChange?.(day)}
               activeOpacity={0.8}
             >
               <Text style={[styles.dayText, isActive && styles.activeDayText]}>
                 {day}
+              </Text>
+
+              <Text style={[styles.countText, isActive && styles.activeCountText]}>
+                {count} workout{count === 1 ? "" : "s"}
               </Text>
             </TouchableOpacity>
           );
@@ -51,36 +53,56 @@ export default function WeeklyPlanner({
 
 const styles = StyleSheet.create({
   wrapper: {
-    backgroundColor: "#171A21",
+    backgroundColor: "#171a21",
     borderRadius: 16,
     padding: 16,
+    marginHorizontal: 20,
+    marginTop: 12,
     marginBottom: 16,
   },
+
   heading: {
-    color: "#FFFFFF",
+    color: "#ffffff",
     fontSize: 17,
     fontWeight: "700",
     marginBottom: 12,
   },
+
   scrollContent: {
     paddingRight: 8,
   },
+
   dayButton: {
     backgroundColor: "#222733",
     paddingVertical: 10,
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     borderRadius: 12,
     marginRight: 10,
+    minWidth: 92,
+    alignItems: "center",
   },
+
   activeDayButton: {
-    backgroundColor: "#2563EB",
+    backgroundColor: "#2563eb",
   },
+
   dayText: {
-    color: "#C7CEDB",
+    color: "#c7cedb",
     fontSize: 15,
     fontWeight: "600",
   },
+
   activeDayText: {
-    color: "#FFFFFF",
+    color: "#ffffff",
+  },
+
+  countText: {
+    color: "#9ca3af",
+    fontSize: 11,
+    marginTop: 4,
+  },
+
+  activeCountText: {
+    color: "#dbeafe",
   },
 });
