@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from "react";
 import {
+  Alert,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,12 +12,14 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import WeeklyPlanner from "@/components/common/WeeklyPlanner";
+import { useWorkouts } from "@/context/WorkoutsContext";
+import { WorkoutExercise, WorkoutTemplate } from "@/types/workout";
 import Chip from "../../components/workouts/chip";
 import TopTab from "../../components/workouts/toptab";
 import WorkoutExerciseManager from "../../components/workouts/WorkoutExerciseManager";
 import WorkoutTemplateCard from "../../components/workouts/WorkoutTemplateCard";
 
-type Exercise = {
+type EditableExercise = {
   id: string;
   name: string;
   sets: string;
@@ -23,14 +27,6 @@ type Exercise = {
   weight: string;
   pregnancySafe?: boolean;
   lowImpact?: boolean;
-};
-
-type WorkoutTemplate = {
-  id: string;
-  assignedDays: string[];
-  workoutName: string;
-  duration: string;
-  exercises: Exercise[];
 };
 
 type WorkoutTab = "overview" | "plan" | "learn";
@@ -68,7 +64,29 @@ const FULL_TO_SHORT_DAY: Record<string, string> = {
 const makeId = () =>
   `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
+const formatLogDate = (dateString: string) => {
+  const date = new Date(dateString);
+
+  if (Number.isNaN(date.getTime())) {
+    return dateString;
+  }
+
+  return date.toLocaleDateString("en-AU", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+};
+
 export default function WorkoutsScreen() {
+  const {
+    templates,
+    setTemplates,
+    completeWorkout,
+    completedLogs,
+    deleteCompletedLog,
+  } = useWorkouts();
+
   const [activeTab, setActiveTab] = useState<WorkoutTab>("plan");
   const [selectedDay, setSelectedDay] = useState("Monday");
 
@@ -92,52 +110,17 @@ export default function WorkoutsScreen() {
     null
   );
 
-  const [templates, setTemplates] = useState<WorkoutTemplate[]>([
-    {
-      id: "1",
-      assignedDays: ["Monday", "Thursday"],
-      workoutName: "Push",
-      duration: "60",
-      exercises: [
-        {
-          id: "1-1",
-          name: "Bench Press",
-          sets: "4",
-          reps: "8",
-          weight: "80",
-          pregnancySafe: false,
-          lowImpact: true,
-        },
-      ],
-    },
-    {
-      id: "2",
-      assignedDays: ["Tuesday"],
-      workoutName: "Pull",
-      duration: "55",
-      exercises: [
-        {
-          id: "2-1",
-          name: "Lat Pulldown",
-          sets: "4",
-          reps: "10",
-          weight: "55",
-          pregnancySafe: true,
-          lowImpact: true,
-        },
-      ],
-    },
-    {
-      id: "3",
-      assignedDays: [],
-      workoutName: "Backup Upper",
-      duration: "45",
-      exercises: [],
-    },
-  ]);
+  const [isCompleteModalVisible, setIsCompleteModalVisible] = useState(false);
+  const [completionNotes, setCompletionNotes] = useState("");
+  const [templateToComplete, setTemplateToComplete] =
+    useState<WorkoutTemplate | null>(null);
 
   const selectedTemplate =
     templates.find((template) => template.id === selectedTemplateId) ?? null;
+
+  const recentCompletedLogs = useMemo(() => {
+    return completedLogs.slice(0, 8);
+  }, [completedLogs]);
 
   const getFirstDayIndex = (days: string[]) => {
     if (days.length === 0) return 999;
@@ -171,7 +154,9 @@ export default function WorkoutsScreen() {
   }, [sortedTemplates, selectedDay]);
 
   const unassignedTemplates = useMemo(() => {
-    return sortedTemplates.filter((template) => template.assignedDays.length === 0);
+    return sortedTemplates.filter(
+      (template) => template.assignedDays.length === 0
+    );
   }, [sortedTemplates]);
 
   const plannerDayCounts = useMemo(() => {
@@ -291,6 +276,12 @@ export default function WorkoutsScreen() {
     setExerciseLowImpact(false);
   };
 
+  const resetCompleteWorkoutModal = () => {
+    setIsCompleteModalVisible(false);
+    setCompletionNotes("");
+    setTemplateToComplete(null);
+  };
+
   const addOrUpdateTemplate = () => {
     if (!workoutName || !duration) return;
 
@@ -372,7 +363,7 @@ export default function WorkoutsScreen() {
   const saveExercise = () => {
     if (!selectedTemplateId || !exerciseName) return;
 
-    const exercise: Exercise = {
+    const exercise: WorkoutExercise = {
       id: makeId(),
       name: exerciseName,
       sets,
@@ -393,7 +384,7 @@ export default function WorkoutsScreen() {
     resetExerciseForm();
   };
 
-  const startEditingExercise = (exercise: Exercise) => {
+  const startEditingExercise = (exercise: EditableExercise) => {
     setEditingExerciseId(exercise.id);
     setExerciseName(exercise.name);
     setSets(exercise.sets);
@@ -447,6 +438,43 @@ export default function WorkoutsScreen() {
     );
   };
 
+  const openCompleteWorkoutModal = (template: WorkoutTemplate) => {
+    setTemplateToComplete(template);
+    setCompletionNotes("");
+    setIsCompleteModalVisible(true);
+  };
+
+  const handleConfirmCompleteWorkout = () => {
+    if (!templateToComplete) return;
+
+    completeWorkout(templateToComplete, completionNotes.trim());
+
+    Alert.alert(
+      "Workout completed",
+      `${templateToComplete.workoutName} was added to your workout history.`
+    );
+
+    resetCompleteWorkoutModal();
+  };
+
+  const handleDeleteCompletedLog = (logId: string, workoutName: string) => {
+    Alert.alert(
+      "Remove workout history",
+      `Remove "${workoutName}" from your history?`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: () => deleteCompletedLog(logId),
+        },
+      ]
+    );
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <View style={styles.container}>
@@ -469,33 +497,82 @@ export default function WorkoutsScreen() {
 
                 {templatesForSelectedDay.length > 0 ? (
                   templatesForSelectedDay.map((template) => (
-                    <WorkoutTemplateCard
-                      key={template.id}
-                      template={{
-                        ...template,
-                        weekday:
-                          template.assignedDays.length > 0
-                            ? template.assignedDays.join(", ")
-                            : "Unassigned",
-                      }}
-                      onSelect={() => {
-                        setSelectedTemplateId(template.id);
-                      }}
-                      onEdit={() => {
-                        startEditingTemplate(template);
-                      }}
-                      onDelete={() => {
-                        deleteTemplate(template.id);
-                      }}
-                      onDuplicate={() => {
-                        copyTemplateForEditing(template);
-                      }}
-                      isSelected={selectedTemplateId === template.id}
-                    />
+                    <View key={template.id} style={styles.dayWorkoutWrap}>
+                      <WorkoutTemplateCard
+                        template={{
+                          ...template,
+                          weekday:
+                            template.assignedDays.length > 0
+                              ? template.assignedDays.join(", ")
+                              : "Unassigned",
+                        }}
+                        onSelect={() => {
+                          setSelectedTemplateId(template.id);
+                        }}
+                        onEdit={() => {
+                          startEditingTemplate(template);
+                        }}
+                        onDelete={() => {
+                          deleteTemplate(template.id);
+                        }}
+                        onDuplicate={() => {
+                          copyTemplateForEditing(template);
+                        }}
+                        isSelected={selectedTemplateId === template.id}
+                      />
+
+                      <TouchableOpacity
+                        style={styles.completeButton}
+                        onPress={() => openCompleteWorkoutModal(template)}
+                      >
+                        <Text style={styles.completeButtonText}>
+                          Complete Workout
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                   ))
                 ) : (
                   <Text style={styles.emptyText}>
                     No workouts assigned to {selectedDay} yet.
+                  </Text>
+                )}
+              </View>
+
+              <View style={styles.card}>
+                <Text style={styles.sectionTitle}>
+                  Recent Workout History
+                </Text>
+
+                {recentCompletedLogs.length > 0 ? (
+                  recentCompletedLogs.map((log) => (
+                    <View key={log.id} style={styles.historyRow}>
+                      <View style={styles.historyTopRow}>
+                        <View style={styles.historyTextWrap}>
+                          <Text style={styles.historyTitle}>{log.workoutName}</Text>
+                          <Text style={styles.historyDate}>
+                            {formatLogDate(log.date)}
+                          </Text>
+                          {log.notes ? (
+                            <Text style={styles.historyNotes}>{log.notes}</Text>
+                          ) : null}
+                        </View>
+
+                        <TouchableOpacity
+                          style={styles.historyDeleteButton}
+                          onPress={() =>
+                            handleDeleteCompletedLog(log.id, log.workoutName)
+                          }
+                        >
+                          <Text style={styles.historyDeleteButtonText}>
+                            Remove
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={styles.emptyText}>
+                    No completed workouts yet.
                   </Text>
                 )}
               </View>
@@ -510,7 +587,8 @@ export default function WorkoutsScreen() {
 
                 <View style={styles.swapList}>
                   {sortedTemplates.map((template) => {
-                    const isAssigned = template.assignedDays.includes(selectedDay);
+                    const isAssigned =
+                      template.assignedDays.includes(selectedDay);
 
                     return (
                       <TouchableOpacity
@@ -546,9 +624,7 @@ export default function WorkoutsScreen() {
               </View>
 
               <View style={styles.card}>
-                <Text style={styles.sectionTitle}>
-                  Backup Templates
-                </Text>
+                <Text style={styles.sectionTitle}>Backup Templates</Text>
                 <Text style={styles.infoText}>
                   These are saved workouts not currently assigned to any day.
                 </Text>
@@ -571,7 +647,9 @@ export default function WorkoutsScreen() {
                           </Text>
                         </View>
 
-                        <Text style={styles.swapStatus}>Assign to {selectedDay}</Text>
+                        <Text style={styles.swapStatus}>
+                          Assign to {selectedDay}
+                        </Text>
                       </TouchableOpacity>
                     ))
                   ) : (
@@ -632,7 +710,9 @@ export default function WorkoutsScreen() {
                   </Text>
                   <TouchableOpacity
                     style={styles.removeButton}
-                    onPress={() => removeSelectedDayFromTemplate(selectedTemplate.id)}
+                    onPress={() =>
+                      removeSelectedDayFromTemplate(selectedTemplate.id)
+                    }
                   >
                     <Text style={styles.removeButtonText}>
                       Remove {selectedDay}
@@ -683,6 +763,48 @@ export default function WorkoutsScreen() {
             </View>
           )}
         </ScrollView>
+
+        <Modal
+          visible={isCompleteModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={resetCompleteWorkoutModal}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Complete Workout</Text>
+
+              <Text style={styles.modalSubtitle}>
+                {templateToComplete?.workoutName ?? ""}
+              </Text>
+
+              <TextInput
+                style={[styles.input, styles.notesInput]}
+                value={completionNotes}
+                onChangeText={setCompletionNotes}
+                placeholder="Optional notes"
+                placeholderTextColor="#9ca3af"
+                multiline
+              />
+
+              <View style={styles.modalButtonRow}>
+                <TouchableOpacity
+                  style={styles.modalCancelButton}
+                  onPress={resetCompleteWorkoutModal}
+                >
+                  <Text style={styles.modalCancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.modalSaveButton}
+                  onPress={handleConfirmCompleteWorkout}
+                >
+                  <Text style={styles.modalSaveButtonText}>Save</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     </SafeAreaView>
   );
@@ -742,6 +864,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 10,
     color: "#ffffff",
+  },
+
+  notesInput: {
+    minHeight: 90,
+    textAlignVertical: "top",
   },
 
   row: {
@@ -820,5 +947,128 @@ const styles = StyleSheet.create({
     color: "#fca5a5",
     fontWeight: "600",
     textAlign: "center",
+  },
+
+  dayWorkoutWrap: {
+    marginBottom: 12,
+  },
+
+  completeButton: {
+    marginTop: 8,
+    backgroundColor: "#14532d",
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+
+  completeButtonText: {
+    color: "#dcfce7",
+    fontWeight: "600",
+    textAlign: "center",
+  },
+
+  historyRow: {
+    backgroundColor: "#2a2e38",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 8,
+  },
+
+  historyTopRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+  },
+
+  historyTextWrap: {
+    flex: 1,
+    marginRight: 12,
+  },
+
+  historyTitle: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+
+  historyDate: {
+    color: "#93c5fd",
+    fontSize: 12,
+    marginBottom: 4,
+  },
+
+  historyNotes: {
+    color: "#d1d5db",
+    fontSize: 12,
+  },
+
+  historyDeleteButton: {
+    backgroundColor: "#3f1d1d",
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+
+  historyDeleteButtonText: {
+    color: "#fca5a5",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+  },
+
+  modalCard: {
+    backgroundColor: "#1c1f26",
+    borderRadius: 14,
+    padding: 16,
+  },
+
+  modalTitle: {
+    color: "#ffffff",
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+
+  modalSubtitle: {
+    color: "#93c5fd",
+    fontSize: 14,
+    marginBottom: 12,
+  },
+
+  modalButtonRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 10,
+  },
+
+  modalCancelButton: {
+    backgroundColor: "#374151",
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+
+  modalCancelButtonText: {
+    color: "#ffffff",
+    fontWeight: "600",
+  },
+
+  modalSaveButton: {
+    backgroundColor: "#14532d",
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+
+  modalSaveButtonText: {
+    color: "#dcfce7",
+    fontWeight: "600",
   },
 });

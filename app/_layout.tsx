@@ -1,6 +1,6 @@
-import { MealsProvider } from "@/context/MealsContext";
 import { ShoppingSuggestionsProvider } from "@/context/ShoppingSuggestionsContext";
 import { UserProfileProvider } from "@/context/UserProfileContext";
+import { WorkoutsProvider } from "@/context/WorkoutsContext";
 import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -12,8 +12,8 @@ export default function RootLayout() {
 
   return (
     <UserProfileProvider>
-      <MealsProvider>
-        <ShoppingSuggestionsProvider>
+      <ShoppingSuggestionsProvider>
+        <WorkoutsProvider>
           <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
             <Stack>
               <Stack.Screen
@@ -31,8 +31,8 @@ export default function RootLayout() {
             </Stack>
             <StatusBar style="auto" />
           </ThemeProvider>
-        </ShoppingSuggestionsProvider>
-      </MealsProvider>
+        </WorkoutsProvider>
+      </ShoppingSuggestionsProvider>
     </UserProfileProvider>
   );
 }
