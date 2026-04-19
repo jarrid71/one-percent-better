@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import WeeklyPlanner from "@/components/common/WeeklyPlanner";
+import { useAppTheme } from "@/context/ThemeContext";
 import { useWorkouts } from "@/context/WorkoutsContext";
 import { WorkoutExercise, WorkoutTemplate } from "@/types/workout";
 import Chip from "../../components/workouts/chip";
@@ -79,6 +80,9 @@ const formatLogDate = (dateString: string) => {
 };
 
 export default function WorkoutsScreen() {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const {
     templates,
     setTemplates,
@@ -539,16 +543,16 @@ export default function WorkoutsScreen() {
               </View>
 
               <View style={styles.card}>
-                <Text style={styles.sectionTitle}>
-                  Recent Workout History
-                </Text>
+                <Text style={styles.sectionTitle}>Recent Workout History</Text>
 
                 {recentCompletedLogs.length > 0 ? (
                   recentCompletedLogs.map((log) => (
                     <View key={log.id} style={styles.historyRow}>
                       <View style={styles.historyTopRow}>
                         <View style={styles.historyTextWrap}>
-                          <Text style={styles.historyTitle}>{log.workoutName}</Text>
+                          <Text style={styles.historyTitle}>
+                            {log.workoutName}
+                          </Text>
                           <Text style={styles.historyDate}>
                             {formatLogDate(log.date)}
                           </Text>
@@ -668,7 +672,7 @@ export default function WorkoutsScreen() {
                   value={workoutName}
                   onChangeText={setWorkoutName}
                   placeholder="Workout name"
-                  placeholderTextColor="#9ca3af"
+                  placeholderTextColor={colors.textSecondary}
                 />
 
                 <TextInput
@@ -676,7 +680,7 @@ export default function WorkoutsScreen() {
                   value={duration}
                   onChangeText={setDuration}
                   placeholder="Duration"
-                  placeholderTextColor="#9ca3af"
+                  placeholderTextColor={colors.textSecondary}
                   keyboardType="numeric"
                 />
 
@@ -783,7 +787,7 @@ export default function WorkoutsScreen() {
                 value={completionNotes}
                 onChangeText={setCompletionNotes}
                 placeholder="Optional notes"
-                placeholderTextColor="#9ca3af"
+                placeholderTextColor={colors.textSecondary}
                 multiline
               />
 
@@ -810,265 +814,278 @@ export default function WorkoutsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#0f1115",
-  },
+const createStyles = (colors: any) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
 
-  container: {
-    flex: 1,
-    backgroundColor: "#0f1115",
-  },
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
 
-  scrollContent: {
-    paddingBottom: 24,
-  },
+    scrollContent: {
+      paddingBottom: 24,
+    },
 
-  card: {
-    backgroundColor: "#1c1f26",
-    padding: 16,
-    borderRadius: 12,
-    marginHorizontal: 20,
-    marginBottom: 20,
-  },
+    card: {
+      backgroundColor: colors.card,
+      padding: 16,
+      borderRadius: 12,
+      marginHorizontal: 20,
+      marginBottom: 20,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
 
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 10,
-    color: "#ffffff",
-  },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: "600",
+      marginBottom: 10,
+      color: colors.text,
+    },
 
-  label: {
-    color: "#d1d5db",
-    fontSize: 14,
-    fontWeight: "600",
-    marginBottom: 10,
-  },
+    label: {
+      color: colors.textSecondary,
+      fontSize: 14,
+      fontWeight: "600",
+      marginBottom: 10,
+    },
 
-  infoText: {
-    color: "#d1d5db",
-    fontSize: 14,
-    lineHeight: 20,
-  },
+    infoText: {
+      color: colors.textSecondary,
+      fontSize: 14,
+      lineHeight: 20,
+    },
 
-  emptyText: {
-    color: "#9ca3af",
-    fontSize: 14,
-  },
+    emptyText: {
+      color: colors.textSecondary,
+      fontSize: 14,
+    },
 
-  input: {
-    backgroundColor: "#2a2e38",
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 10,
-    color: "#ffffff",
-  },
+    input: {
+      backgroundColor: colors.inputBackground ?? colors.card,
+      padding: 10,
+      borderRadius: 8,
+      marginBottom: 10,
+      color: colors.text,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
 
-  notesInput: {
-    minHeight: 90,
-    textAlignVertical: "top",
-  },
+    notesInput: {
+      minHeight: 90,
+      textAlignVertical: "top",
+    },
 
-  row: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginBottom: 10,
-  },
+    row: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      marginBottom: 10,
+    },
 
-  primaryButton: {
-    backgroundColor: "#4c8bf5",
-    padding: 10,
-    borderRadius: 8,
-  },
+    primaryButton: {
+      backgroundColor: colors.primary,
+      padding: 10,
+      borderRadius: 8,
+    },
 
-  primaryButtonText: {
-    color: "#ffffff",
-    fontWeight: "600",
-    textAlign: "center",
-  },
+    primaryButtonText: {
+      color: "#ffffff",
+      fontWeight: "600",
+      textAlign: "center",
+    },
 
-  swapList: {
-    marginTop: 10,
-  },
+    swapList: {
+      marginTop: 10,
+    },
 
-  swapRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#2a2e38",
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 8,
-  },
+    swapRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      backgroundColor: colors.inputBackground ?? colors.card,
+      padding: 12,
+      borderRadius: 10,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
 
-  swapRowActive: {
-    backgroundColor: "#1e3a8a",
-    borderWidth: 1,
-    borderColor: "#60a5fa",
-  },
+    swapRowActive: {
+      backgroundColor: colors.primary,
+      borderWidth: 1,
+      borderColor: colors.primary,
+    },
 
-  swapTextWrap: {
-    flex: 1,
-    marginRight: 12,
-  },
+    swapTextWrap: {
+      flex: 1,
+      marginRight: 12,
+    },
 
-  swapText: {
-    color: "#ffffff",
-    fontWeight: "600",
-    fontSize: 14,
-  },
+    swapText: {
+      color: colors.text,
+      fontWeight: "600",
+      fontSize: 14,
+    },
 
-  swapSubText: {
-    color: "#9ca3af",
-    fontSize: 12,
-    marginTop: 2,
-  },
+    swapSubText: {
+      color: colors.textSecondary,
+      fontSize: 12,
+      marginTop: 2,
+    },
 
-  swapStatus: {
-    color: "#9ca3af",
-    fontSize: 12,
-    fontWeight: "600",
-  },
+    swapStatus: {
+      color: colors.textSecondary,
+      fontSize: 12,
+      fontWeight: "600",
+    },
 
-  swapStatusActive: {
-    color: "#dbeafe",
-  },
+    swapStatusActive: {
+      color: "#ffffff",
+    },
 
-  removeButton: {
-    backgroundColor: "#3f1d1d",
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-  },
+    removeButton: {
+      backgroundColor: "#3f1d1d",
+      borderRadius: 10,
+      paddingVertical: 12,
+      paddingHorizontal: 14,
+    },
 
-  removeButtonText: {
-    color: "#fca5a5",
-    fontWeight: "600",
-    textAlign: "center",
-  },
+    removeButtonText: {
+      color: "#fca5a5",
+      fontWeight: "600",
+      textAlign: "center",
+    },
 
-  dayWorkoutWrap: {
-    marginBottom: 12,
-  },
+    dayWorkoutWrap: {
+      marginBottom: 12,
+    },
 
-  completeButton: {
-    marginTop: 8,
-    backgroundColor: "#14532d",
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-  },
+    completeButton: {
+      marginTop: 8,
+      backgroundColor: "#14532d",
+      borderRadius: 10,
+      paddingVertical: 12,
+      paddingHorizontal: 14,
+    },
 
-  completeButtonText: {
-    color: "#dcfce7",
-    fontWeight: "600",
-    textAlign: "center",
-  },
+    completeButtonText: {
+      color: "#dcfce7",
+      fontWeight: "600",
+      textAlign: "center",
+    },
 
-  historyRow: {
-    backgroundColor: "#2a2e38",
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 8,
-  },
+    historyRow: {
+      backgroundColor: colors.inputBackground ?? colors.card,
+      borderRadius: 10,
+      padding: 12,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
 
-  historyTopRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-  },
+    historyTopRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      justifyContent: "space-between",
+    },
 
-  historyTextWrap: {
-    flex: 1,
-    marginRight: 12,
-  },
+    historyTextWrap: {
+      flex: 1,
+      marginRight: 12,
+    },
 
-  historyTitle: {
-    color: "#ffffff",
-    fontSize: 14,
-    fontWeight: "600",
-    marginBottom: 4,
-  },
+    historyTitle: {
+      color: colors.text,
+      fontSize: 14,
+      fontWeight: "600",
+      marginBottom: 4,
+    },
 
-  historyDate: {
-    color: "#93c5fd",
-    fontSize: 12,
-    marginBottom: 4,
-  },
+    historyDate: {
+      color: colors.primary,
+      fontSize: 12,
+      marginBottom: 4,
+    },
 
-  historyNotes: {
-    color: "#d1d5db",
-    fontSize: 12,
-  },
+    historyNotes: {
+      color: colors.textSecondary,
+      fontSize: 12,
+    },
 
-  historyDeleteButton: {
-    backgroundColor: "#3f1d1d",
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-  },
+    historyDeleteButton: {
+      backgroundColor: "#3f1d1d",
+      borderRadius: 8,
+      paddingVertical: 8,
+      paddingHorizontal: 10,
+    },
 
-  historyDeleteButtonText: {
-    color: "#fca5a5",
-    fontSize: 12,
-    fontWeight: "600",
-  },
+    historyDeleteButtonText: {
+      color: "#fca5a5",
+      fontSize: 12,
+      fontWeight: "600",
+    },
 
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    justifyContent: "center",
-    paddingHorizontal: 20,
-  },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.6)",
+      justifyContent: "center",
+      paddingHorizontal: 20,
+    },
 
-  modalCard: {
-    backgroundColor: "#1c1f26",
-    borderRadius: 14,
-    padding: 16,
-  },
+    modalCard: {
+      backgroundColor: colors.card,
+      borderRadius: 14,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
 
-  modalTitle: {
-    color: "#ffffff",
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 8,
-  },
+    modalTitle: {
+      color: colors.text,
+      fontSize: 18,
+      fontWeight: "700",
+      marginBottom: 8,
+    },
 
-  modalSubtitle: {
-    color: "#93c5fd",
-    fontSize: 14,
-    marginBottom: 12,
-  },
+    modalSubtitle: {
+      color: colors.primary,
+      fontSize: 14,
+      marginBottom: 12,
+    },
 
-  modalButtonRow: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 10,
-  },
+    modalButtonRow: {
+      flexDirection: "row",
+      justifyContent: "flex-end",
+      gap: 10,
+    },
 
-  modalCancelButton: {
-    backgroundColor: "#374151",
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-  },
+    modalCancelButton: {
+      backgroundColor: colors.inputBackground ?? colors.card,
+      borderRadius: 8,
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
 
-  modalCancelButtonText: {
-    color: "#ffffff",
-    fontWeight: "600",
-  },
+    modalCancelButtonText: {
+      color: colors.text,
+      fontWeight: "600",
+    },
 
-  modalSaveButton: {
-    backgroundColor: "#14532d",
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-  },
+    modalSaveButton: {
+      backgroundColor: "#14532d",
+      borderRadius: 8,
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+    },
 
-  modalSaveButtonText: {
-    color: "#dcfce7",
-    fontWeight: "600",
-  },
-});
+    modalSaveButtonText: {
+      color: "#dcfce7",
+      fontWeight: "600",
+    },
+  });

@@ -1,5 +1,7 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+
+import { useAppTheme } from "@/context/ThemeContext";
 
 export type WorkoutTab = "overview" | "plan" | "learn";
 
@@ -9,6 +11,9 @@ type TopTabProps = {
 };
 
 export default function TopTab({ activeTab, setActiveTab }: TopTabProps) {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View style={styles.container}>
       <TouchableOpacity
@@ -29,7 +34,12 @@ export default function TopTab({ activeTab, setActiveTab }: TopTabProps) {
         style={[styles.tab, activeTab === "plan" && styles.tabActive]}
         onPress={() => setActiveTab("plan")}
       >
-        <Text style={[styles.tabText, activeTab === "plan" && styles.tabTextActive]}>
+        <Text
+          style={[
+            styles.tabText,
+            activeTab === "plan" && styles.tabTextActive,
+          ]}
+        >
           Plan
         </Text>
       </TouchableOpacity>
@@ -51,33 +61,37 @@ export default function TopTab({ activeTab, setActiveTab }: TopTabProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    backgroundColor: "#0f1115",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
+const createStyles = (colors: any) =>
+  StyleSheet.create({
+    container: {
+      flexDirection: "row",
+      backgroundColor: colors.background, // ✅ themed
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+    },
 
-  tab: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: "#1f2937",
-    alignItems: "center",
-    marginHorizontal: 4,
-  },
+    tab: {
+      flex: 1,
+      paddingVertical: 10,
+      borderRadius: 10,
+      backgroundColor: colors.surface, // ✅ themed
+      alignItems: "center",
+      marginHorizontal: 4,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
 
-  tabActive: {
-    backgroundColor: "#2563eb",
-  },
+    tabActive: {
+      backgroundColor: colors.primary, // ✅ themed
+      borderColor: colors.primary,
+    },
 
-  tabText: {
-    color: "#9ca3af",
-    fontWeight: "600",
-  },
+    tabText: {
+      color: colors.textSecondary,
+      fontWeight: "600",
+    },
 
-  tabTextActive: {
-    color: "#ffffff",
-  },
-});
+    tabTextActive: {
+      color: "#ffffff",
+    },
+  });

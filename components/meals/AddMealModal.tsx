@@ -1,8 +1,3 @@
-import { COLORS } from "@/constants/colors";
-import { SPACING } from "@/constants/spacing";
-import { useMeals } from "@/context/MealsContext";
-import { Ingredient, Meal } from "@/types/meal";
-import { getIngredientCategory } from "@/utils/getIngredientCategory";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
@@ -15,6 +10,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
+import { SPACING } from "@/constants/spacing";
+import { useMeals } from "@/context/MealsContext";
+import { useAppTheme } from "@/context/ThemeContext";
+import { Ingredient, Meal } from "@/types/meal";
+import { getIngredientCategory } from "@/utils/getIngredientCategory";
 
 type AddMealModalProps = {
   visible: boolean;
@@ -31,9 +32,12 @@ export default function AddMealModal({
   onDelete,
   editingMeal = null,
 }: AddMealModalProps) {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const { ingredientSuggestions } = useMeals();
 
-  const isEditing = useMemo(() => !!editingMeal, [editingMeal]);
+  const isEditing = !!editingMeal;
 
   const mealNameInputRef = useRef<TextInput>(null);
   const ingredientNameInputRef = useRef<TextInput>(null);
@@ -208,7 +212,7 @@ export default function AddMealModal({
               value={mealName}
               onChangeText={setMealName}
               placeholder="e.g. Chicken rice bowl"
-              placeholderTextColor={COLORS.textSecondary}
+              placeholderTextColor={colors.textSecondary}
               style={styles.input}
               returnKeyType="next"
               onSubmitEditing={handleMealNameSubmit}
@@ -229,7 +233,7 @@ export default function AddMealModal({
               value={ingredientName}
               onChangeText={setIngredientName}
               placeholder="e.g. Chicken breast"
-              placeholderTextColor={COLORS.textSecondary}
+              placeholderTextColor={colors.textSecondary}
               style={styles.input}
               returnKeyType="next"
               onSubmitEditing={handleIngredientNameSubmit}
@@ -238,10 +242,14 @@ export default function AddMealModal({
 
             {filteredSuggestions.length > 0 && (
               <View style={styles.suggestionsContainer}>
-                {filteredSuggestions.map((suggestion) => (
+                {filteredSuggestions.map((suggestion, index) => (
                   <TouchableOpacity
-                    key={suggestion}
-                    style={styles.suggestionItem}
+                    key={`${suggestion}-${index}`}
+                    style={[
+                      styles.suggestionItem,
+                      index === filteredSuggestions.length - 1 &&
+                        styles.lastSuggestionItem,
+                    ]}
                     onPress={() => handleSuggestionPress(suggestion)}
                   >
                     <Text style={styles.suggestionText}>{suggestion}</Text>
@@ -256,7 +264,7 @@ export default function AddMealModal({
               value={ingredientAmount}
               onChangeText={setIngredientAmount}
               placeholder="e.g. 500g"
-              placeholderTextColor={COLORS.textSecondary}
+              placeholderTextColor={colors.textSecondary}
               style={styles.input}
               returnKeyType="done"
               onSubmitEditing={handleAddIngredient}
@@ -324,171 +332,177 @@ export default function AddMealModal({
   );
 }
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "center",
-    padding: SPACING.lg,
-  },
-  modalCard: {
-    backgroundColor: COLORS.card,
-    borderRadius: 20,
-    maxHeight: "90%",
-    padding: SPACING.lg,
-  },
-  scrollContent: {
-    paddingBottom: SPACING.md,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: COLORS.text,
-    marginBottom: SPACING.lg,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.text,
-    marginBottom: 6,
-    marginTop: SPACING.sm,
-  },
-  input: {
-    backgroundColor: COLORS.background,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: COLORS.text,
-  },
-  sectionHeaderRow: {
-    marginTop: SPACING.lg,
-    marginBottom: SPACING.xs,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: COLORS.text,
-  },
-  helperText: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.sm,
-  },
-  suggestionsContainer: {
-    marginTop: 8,
-    backgroundColor: COLORS.background,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  suggestionItem: {
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  suggestionText: {
-    fontSize: 14,
-    color: COLORS.text,
-  },
-  addIngredientButton: {
-    marginTop: SPACING.md,
-    backgroundColor: COLORS.primary,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-  },
-  addIngredientButtonText: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  ingredientsList: {
-    marginTop: SPACING.lg,
-    gap: SPACING.sm,
-  },
-  ingredientCard: {
-    backgroundColor: COLORS.background,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: SPACING.md,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: SPACING.sm,
-  },
-  ingredientTextWrap: {
-    flex: 1,
-  },
-  ingredientName: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: COLORS.text,
-    marginBottom: 4,
-  },
-  ingredientMeta: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-  },
-  removeButton: {
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  removeButtonText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#FF6B6B",
-  },
-  footer: {
-    flexDirection: "row",
-    gap: SPACING.sm,
-    marginTop: SPACING.md,
-  },
-  cancelButton: {
-    flex: 1,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 14,
-    backgroundColor: COLORS.background,
-  },
-  cancelButtonText: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  deleteButton: {
-    flex: 1,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 14,
-    backgroundColor: COLORS.danger,
-  },
-  deleteButtonText: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  saveButton: {
-    flex: 1,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 14,
-    backgroundColor: COLORS.primary,
-  },
-  saveButtonText: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "700",
-  },
-});
+const createStyles = (colors: any) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.45)",
+      justifyContent: "center",
+      padding: SPACING.lg,
+    },
+    modalCard: {
+      backgroundColor: colors.card,
+      borderRadius: 20,
+      maxHeight: "90%",
+      padding: SPACING.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    scrollContent: {
+      paddingBottom: SPACING.md,
+    },
+    title: {
+      fontSize: 22,
+      fontWeight: "700",
+      color: colors.text,
+      marginBottom: SPACING.lg,
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.text,
+      marginBottom: 6,
+      marginTop: SPACING.sm,
+    },
+    input: {
+      backgroundColor: colors.background,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      fontSize: 15,
+      color: colors.text,
+    },
+    sectionHeaderRow: {
+      marginTop: SPACING.lg,
+      marginBottom: SPACING.xs,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: "700",
+      color: colors.text,
+    },
+    helperText: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      marginBottom: SPACING.sm,
+    },
+    suggestionsContainer: {
+      marginTop: 8,
+      backgroundColor: colors.background,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 12,
+      overflow: "hidden",
+    },
+    suggestionItem: {
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    lastSuggestionItem: {
+      borderBottomWidth: 0,
+    },
+    suggestionText: {
+      fontSize: 14,
+      color: colors.text,
+    },
+    addIngredientButton: {
+      marginTop: SPACING.md,
+      backgroundColor: colors.primary,
+      borderRadius: 12,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 12,
+    },
+    addIngredientButtonText: {
+      color: "#FFFFFF",
+      fontSize: 15,
+      fontWeight: "700",
+    },
+    ingredientsList: {
+      marginTop: SPACING.lg,
+      gap: SPACING.sm,
+    },
+    ingredientCard: {
+      backgroundColor: colors.background,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: SPACING.md,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: SPACING.sm,
+    },
+    ingredientTextWrap: {
+      flex: 1,
+    },
+    ingredientName: {
+      fontSize: 15,
+      fontWeight: "600",
+      color: colors.text,
+      marginBottom: 4,
+    },
+    ingredientMeta: {
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+    removeButton: {
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+    },
+    removeButtonText: {
+      fontSize: 13,
+      fontWeight: "700",
+      color: "#FF6B6B",
+    },
+    footer: {
+      flexDirection: "row",
+      gap: SPACING.sm,
+      marginTop: SPACING.md,
+    },
+    cancelButton: {
+      flex: 1,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 14,
+      backgroundColor: colors.background,
+    },
+    cancelButtonText: {
+      color: colors.text,
+      fontSize: 15,
+      fontWeight: "600",
+    },
+    deleteButton: {
+      flex: 1,
+      borderRadius: 12,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 14,
+      backgroundColor: "#b91c1c",
+    },
+    deleteButtonText: {
+      color: "#FFFFFF",
+      fontSize: 15,
+      fontWeight: "700",
+    },
+    saveButton: {
+      flex: 1,
+      borderRadius: 12,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 14,
+      backgroundColor: colors.primary,
+    },
+    saveButtonText: {
+      color: "#FFFFFF",
+      fontSize: 15,
+      fontWeight: "700",
+    },
+  });

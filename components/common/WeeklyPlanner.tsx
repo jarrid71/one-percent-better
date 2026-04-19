@@ -1,5 +1,7 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+
+import { useAppTheme } from "@/context/ThemeContext";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 
@@ -16,6 +18,9 @@ export default function WeeklyPlanner({
   onDayChange,
   dayCounts = {},
 }: WeeklyPlannerProps) {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View style={styles.wrapper}>
       <Text style={styles.heading}>Weekly Planner</Text>
@@ -51,58 +56,64 @@ export default function WeeklyPlanner({
   );
 }
 
-const styles = StyleSheet.create({
-  wrapper: {
-    backgroundColor: "#171a21",
-    borderRadius: 16,
-    padding: 16,
-    marginHorizontal: 20,
-    marginTop: 12,
-    marginBottom: 16,
-  },
+const createStyles = (colors: any) =>
+  StyleSheet.create({
+    wrapper: {
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      padding: 16,
+      marginHorizontal: 20,
+      marginTop: 12,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
 
-  heading: {
-    color: "#ffffff",
-    fontSize: 17,
-    fontWeight: "700",
-    marginBottom: 12,
-  },
+    heading: {
+      color: colors.text,
+      fontSize: 17,
+      fontWeight: "700",
+      marginBottom: 12,
+    },
 
-  scrollContent: {
-    paddingRight: 8,
-  },
+    scrollContent: {
+      paddingRight: 8,
+    },
 
-  dayButton: {
-    backgroundColor: "#222733",
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    marginRight: 10,
-    minWidth: 92,
-    alignItems: "center",
-  },
+    dayButton: {
+      backgroundColor: colors.inputBackground ?? colors.background,
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      borderRadius: 12,
+      marginRight: 10,
+      minWidth: 92,
+      alignItems: "center",
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
 
-  activeDayButton: {
-    backgroundColor: "#2563eb",
-  },
+    activeDayButton: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
 
-  dayText: {
-    color: "#c7cedb",
-    fontSize: 15,
-    fontWeight: "600",
-  },
+    dayText: {
+      color: colors.textSecondary,
+      fontSize: 15,
+      fontWeight: "600",
+    },
 
-  activeDayText: {
-    color: "#ffffff",
-  },
+    activeDayText: {
+      color: "#ffffff",
+    },
 
-  countText: {
-    color: "#9ca3af",
-    fontSize: 11,
-    marginTop: 4,
-  },
+    countText: {
+      color: colors.textSecondary,
+      fontSize: 11,
+      marginTop: 4,
+    },
 
-  activeCountText: {
-    color: "#dbeafe",
-  },
-});
+    activeCountText: {
+      color: "#ffffff",
+    },
+  });

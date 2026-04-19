@@ -1,38 +1,72 @@
+import { FeatureSuggestionsProvider } from "@/context/FeatureSuggestionsContext";
+import { MealsProvider } from "@/context/MealsContext";
 import { ShoppingSuggestionsProvider } from "@/context/ShoppingSuggestionsContext";
+import {
+  ThemeProvider as AppThemeProvider,
+  useAppTheme,
+} from "@/context/ThemeContext";
 import { UserProfileProvider } from "@/context/UserProfileContext";
 import { WorkoutsProvider } from "@/context/WorkoutsContext";
-import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
+import { ThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useColorScheme } from "react-native";
+import React from "react";
 import "react-native-reanimated";
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
+function AppNavigator() {
+  const { navigationTheme, statusBarStyle, colors, isThemeLoaded } =
+    useAppTheme();
+
+  if (!isThemeLoaded) {
+    return null;
+  }
 
   return (
-    <UserProfileProvider>
-      <ShoppingSuggestionsProvider>
-        <WorkoutsProvider>
-          <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-            <Stack>
-              <Stack.Screen
-                name="(tabs)"
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen
-                name="modal"
-                options={{
-                  presentation: "modal",
-                  headerShown: true,
-                  title: "Modal",
-                }}
-              />
-            </Stack>
-            <StatusBar style="auto" />
-          </ThemeProvider>
-        </WorkoutsProvider>
-      </ShoppingSuggestionsProvider>
-    </UserProfileProvider>
+    <ThemeProvider value={navigationTheme}>
+      <Stack
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: colors.card,
+          },
+          headerTintColor: colors.text,
+          headerTitleStyle: {
+            color: colors.text,
+          },
+          contentStyle: {
+            backgroundColor: colors.background,
+          },
+        }}
+      >
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="modal"
+          options={{
+            presentation: "modal",
+            headerShown: true,
+            title: "Modal",
+          }}
+        />
+      </Stack>
+
+      <StatusBar style={statusBarStyle} />
+    </ThemeProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <AppThemeProvider>
+      <UserProfileProvider>
+        <MealsProvider>
+          <ShoppingSuggestionsProvider>
+            <WorkoutsProvider>
+              <FeatureSuggestionsProvider>
+                <AppNavigator />
+              </FeatureSuggestionsProvider>
+            </WorkoutsProvider>
+          </ShoppingSuggestionsProvider>
+        </MealsProvider>
+      </UserProfileProvider>
+    </AppThemeProvider>
   );
 }

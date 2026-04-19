@@ -13,12 +13,15 @@ import WeeklyPlanner from "@/components/common/WeeklyPlanner";
 import AddMealModal from "@/components/meals/AddMealModal";
 import DashboardCard from "@/components/meals/DashboardCard";
 import MealCard from "@/components/meals/MealCard";
-import { COLORS } from "@/constants/colors";
 import { SPACING } from "@/constants/spacing";
 import { useMeals } from "@/context/MealsContext";
+import { useAppTheme } from "@/context/ThemeContext";
 import { Meal } from "@/types/meal";
 
 export default function MealsScreen() {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const {
     meals,
     selectedDay,
@@ -268,173 +271,174 @@ export default function MealsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: COLORS.background,
-  },
-  loadingText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: COLORS.textSecondary,
-  },
-  scrollContent: {
-    padding: SPACING.lg,
-    paddingBottom: 120,
-  },
-  header: {
-    marginBottom: SPACING.lg,
-  },
-  overline: {
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 1.2,
-    color: COLORS.primary,
-    marginBottom: SPACING.xs,
-  },
-  screenTitle: {
-    fontSize: 32,
-    fontWeight: "800",
-    color: COLORS.text,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: COLORS.textSecondary,
-    marginTop: SPACING.xs,
-  },
-  summaryRow: {
-    flexDirection: "row",
-    gap: SPACING.md,
-    marginBottom: SPACING.md,
-  },
-  sectionCard: {
-    backgroundColor: COLORS.card,
-    borderRadius: 20,
-    padding: SPACING.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: SPACING.lg,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: COLORS.text,
-    marginBottom: SPACING.md,
-  },
-  mealsList: {
-    gap: SPACING.md,
-    marginTop: SPACING.sm,
-  },
-  savedMealsHeader: {
-    marginTop: SPACING.sm,
-    marginBottom: SPACING.sm,
-  },
-  savedMealsHelper: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-    lineHeight: 18,
-  },
-  savedMealItem: {
-    gap: SPACING.sm,
-  },
-  mealCardWrap: {
-    position: "relative",
-  },
-  plannedBadge: {
-    position: "absolute",
-    top: 12,
-    right: 12,
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-  },
-  plannedBadgeText: {
-    color: "#FFFFFF",
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  planToggleButton: {
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  planToggleButtonAdd: {
-    backgroundColor: COLORS.primary,
-  },
-  planToggleButtonRemove: {
-    backgroundColor: COLORS.danger,
-  },
-  planToggleButtonText: {
-    color: "#FFFFFF",
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  infoCard: {
-    backgroundColor: COLORS.card,
-    borderRadius: 18,
-    padding: SPACING.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginTop: SPACING.sm,
-  },
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: COLORS.text,
-    marginBottom: SPACING.sm,
-  },
-  infoText: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: COLORS.textSecondary,
-  },
-  plannedMealsList: {
-    gap: SPACING.sm,
-  },
-  plannedMealRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.sm,
-    backgroundColor: COLORS.background,
-    borderRadius: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  plannedMealMain: {
-    flex: 1,
-  },
-  plannedMealTextWrap: {
-    flex: 1,
-    paddingRight: SPACING.sm,
-  },
-  plannedMealName: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: COLORS.text,
-    marginBottom: 2,
-  },
-  plannedMealMeta: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-  },
-  removePlannedButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  removePlannedButtonText: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-});
+const createStyles = (colors: any) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: colors.background,
+    },
+    loadingText: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.textSecondary,
+    },
+    scrollContent: {
+      padding: SPACING.lg,
+      paddingBottom: 120,
+    },
+    header: {
+      marginBottom: SPACING.lg,
+    },
+    overline: {
+      fontSize: 12,
+      fontWeight: "700",
+      letterSpacing: 1.2,
+      color: colors.primary,
+      marginBottom: SPACING.xs,
+    },
+    screenTitle: {
+      fontSize: 32,
+      fontWeight: "800",
+      color: colors.text,
+    },
+    subtitle: {
+      fontSize: 15,
+      color: colors.textSecondary,
+      marginTop: SPACING.xs,
+    },
+    summaryRow: {
+      flexDirection: "row",
+      gap: SPACING.md,
+      marginBottom: SPACING.md,
+    },
+    sectionCard: {
+      backgroundColor: colors.card,
+      borderRadius: 20,
+      padding: SPACING.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      marginBottom: SPACING.lg,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: "700",
+      color: colors.text,
+      marginBottom: SPACING.md,
+    },
+    mealsList: {
+      gap: SPACING.md,
+      marginTop: SPACING.sm,
+    },
+    savedMealsHeader: {
+      marginTop: SPACING.sm,
+      marginBottom: SPACING.sm,
+    },
+    savedMealsHelper: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      lineHeight: 18,
+    },
+    savedMealItem: {
+      gap: SPACING.sm,
+    },
+    mealCardWrap: {
+      position: "relative",
+    },
+    plannedBadge: {
+      position: "absolute",
+      top: 12,
+      right: 12,
+      backgroundColor: colors.primary,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 999,
+    },
+    plannedBadgeText: {
+      color: "#FFFFFF",
+      fontSize: 11,
+      fontWeight: "700",
+    },
+    planToggleButton: {
+      borderRadius: 12,
+      paddingVertical: 12,
+      alignItems: "center",
+    },
+    planToggleButtonAdd: {
+      backgroundColor: colors.primary,
+    },
+    planToggleButtonRemove: {
+      backgroundColor: "#b91c1c",
+    },
+    planToggleButtonText: {
+      color: "#FFFFFF",
+      fontSize: 13,
+      fontWeight: "700",
+    },
+    infoCard: {
+      backgroundColor: colors.card,
+      borderRadius: 18,
+      padding: SPACING.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      marginTop: SPACING.sm,
+    },
+    infoTitle: {
+      fontSize: 16,
+      fontWeight: "700",
+      color: colors.text,
+      marginBottom: SPACING.sm,
+    },
+    infoText: {
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.textSecondary,
+    },
+    plannedMealsList: {
+      gap: SPACING.sm,
+    },
+    plannedMealRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: SPACING.sm,
+      backgroundColor: colors.background,
+      borderRadius: 14,
+      paddingVertical: 12,
+      paddingHorizontal: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    plannedMealMain: {
+      flex: 1,
+    },
+    plannedMealTextWrap: {
+      flex: 1,
+      paddingRight: SPACING.sm,
+    },
+    plannedMealName: {
+      fontSize: 15,
+      fontWeight: "700",
+      color: colors.text,
+      marginBottom: 2,
+    },
+    plannedMealMeta: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    removePlannedButton: {
+      backgroundColor: colors.primary,
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
+    removePlannedButtonText: {
+      color: "#FFFFFF",
+      fontSize: 12,
+      fontWeight: "700",
+    },
+  });

@@ -1,8 +1,8 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { COLORS } from "@/constants/colors";
 import { SPACING } from "@/constants/spacing";
+import { useAppTheme } from "@/context/ThemeContext";
 import { Meal } from "@/types/meal";
 
 type MealCardProps = {
@@ -10,6 +10,9 @@ type MealCardProps = {
 };
 
 export default function MealCard({ meal }: MealCardProps) {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const ingredientCount = meal.ingredients.length;
 
   return (
@@ -51,114 +54,115 @@ export default function MealCard({ meal }: MealCardProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: COLORS.card,
-    borderRadius: 18,
-    padding: SPACING.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
+const createStyles = (colors: any) =>
+  StyleSheet.create({
+    card: {
+      backgroundColor: colors.card,
+      borderRadius: 18,
+      padding: SPACING.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
 
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: SPACING.md,
-  },
+    headerRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      marginBottom: SPACING.md,
+    },
 
-  titleWrap: {
-    flex: 1,
-    paddingRight: SPACING.sm,
-  },
+    titleWrap: {
+      flex: 1,
+      paddingRight: SPACING.sm,
+    },
 
-  title: {
-    fontSize: 19,
-    fontWeight: "800",
-    color: COLORS.text,
-    marginBottom: 4,
-  },
+    title: {
+      fontSize: 19,
+      fontWeight: "800",
+      color: colors.text,
+      marginBottom: 4,
+    },
 
-  subtitle: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-    fontWeight: "500",
-  },
+    subtitle: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      fontWeight: "500",
+    },
 
-  countBadge: {
-    backgroundColor: COLORS.background,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
+    countBadge: {
+      backgroundColor: colors.background,
+      borderRadius: 999,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
 
-  countBadgeText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: COLORS.text,
-  },
+    countBadgeText: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: colors.text,
+    },
 
-  divider: {
-    height: 1,
-    backgroundColor: COLORS.border,
-    marginBottom: SPACING.md,
-  },
+    divider: {
+      height: 1,
+      backgroundColor: colors.border,
+      marginBottom: SPACING.md,
+    },
 
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.sm,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
+    sectionTitle: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: colors.textSecondary,
+      marginBottom: SPACING.sm,
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+    },
 
-  ingredientsList: {
-    gap: SPACING.sm,
-  },
+    ingredientsList: {
+      gap: SPACING.sm,
+    },
 
-  ingredientRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.background,
-    borderRadius: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
+    ingredientRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.background,
+      borderRadius: 14,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
 
-  bullet: {
-    width: 8,
-    height: 8,
-    borderRadius: 999,
-    backgroundColor: COLORS.primary,
-    marginRight: SPACING.sm,
-  },
+    bullet: {
+      width: 8,
+      height: 8,
+      borderRadius: 999,
+      backgroundColor: colors.primary,
+      marginRight: SPACING.sm,
+    },
 
-  ingredientTextWrap: {
-    flex: 1,
-  },
+    ingredientTextWrap: {
+      flex: 1,
+    },
 
-  ingredientName: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: COLORS.text,
-    marginBottom: 2,
-  },
+    ingredientName: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: colors.text,
+      marginBottom: 2,
+    },
 
-  ingredientAmount: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    fontWeight: "500",
-  },
+    ingredientAmount: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      fontWeight: "500",
+    },
 
-  ingredientNumber: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: COLORS.textSecondary,
-    marginLeft: SPACING.sm,
-  },
-});
+    ingredientNumber: {
+      fontSize: 11,
+      fontWeight: "700",
+      color: colors.textSecondary,
+      marginLeft: SPACING.sm,
+    },
+  });
