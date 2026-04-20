@@ -1,64 +1,99 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, {
+  createContext,
+  ReactNode,
+  useContext,
+  useMemo,
+  useState,
+} from "react";
 
 export type ShoppingSuggestion = {
   id: string;
   name: string;
   amount?: string;
   category?: string;
-  sourceMeal?: string;
+};
+
+type AddSuggestionInput = {
+  name: string;
+  amount?: string;
+  category?: string;
 };
 
 type ShoppingSuggestionsContextType = {
   suggestions: ShoppingSuggestion[];
-  addSuggestion: (suggestion: ShoppingSuggestion) => void;
-  addSuggestions: (newSuggestions: ShoppingSuggestion[]) => void;
+  addSuggestion: (item: AddSuggestionInput) => void;
+  addSuggestions: (items: AddSuggestionInput[]) => void;
   removeSuggestion: (id: string) => void;
   clearSuggestions: () => void;
 };
 
-const ShoppingSuggestionsContext = createContext<ShoppingSuggestionsContextType | undefined>(
-  undefined
-);
+const ShoppingSuggestionsContext = createContext<
+  ShoppingSuggestionsContextType | undefined
+>(undefined);
+
+function normalizeName(name: string) {
+  return name.trim().toLowerCase();
+}
+
+function createSuggestion(item: AddSuggestionInput): ShoppingSuggestion {
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+    name: item.name.trim(),
+    amount: item.amount?.trim() || "",
+    category: item.category?.trim() || "Other",
+  };
+}
 
 export function ShoppingSuggestionsProvider({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   const [suggestions, setSuggestions] = useState<ShoppingSuggestion[]>([]);
 
-  const addSuggestion = (suggestion: ShoppingSuggestion) => {
+  const addSuggestion = (item: AddSuggestionInput) => {
+    if (!item.name.trim()) return;
+
     setSuggestions((current) => {
       const exists = current.some(
-        (item) => item.name.toLowerCase() === suggestion.name.toLowerCase()
+        (suggestion) => normalizeName(suggestion.name) === normalizeName(item.name)
       );
 
-      if (exists) return current;
+      if (exists) {
+        return current;
+      }
 
-      return [...current, suggestion];
+      return [...current, createSuggestion(item)];
     });
   };
 
-  const addSuggestions = (newSuggestions: ShoppingSuggestion[]) => {
-    setSuggestions((current) => {
-      const updated = [...current];
+  const addSuggestions = (items: AddSuggestionInput[]) => {
+    if (!items.length) return;
 
-      newSuggestions.forEach((suggestion) => {
-        const exists = updated.some(
-          (item) => item.name.toLowerCase() === suggestion.name.toLowerCase()
+    setSuggestions((current) => {
+      const next = [...current];
+
+      items.forEach((item) => {
+        if (!item.name.trim()) return;
+
+        const exists = next.some(
+          (suggestion) =>
+            normalizeName(suggestion.name) === normalizeName(item.name)
         );
 
         if (!exists) {
-          updated.push(suggestion);
+          next.push(createSuggestion(item));
         }
       });
 
-      return updated;
+      return next;
     });
   };
 
   const removeSuggestion = (id: string) => {
-    setSuggestions((current) => current.filter((item) => item.id !== id));
+    setSuggestions((current) =>
+      current.filter((suggestion) => suggestion.id !== id)
+    );
   };
 
   const clearSuggestions = () => {
@@ -87,7 +122,9 @@ export function useShoppingSuggestions() {
   const context = useContext(ShoppingSuggestionsContext);
 
   if (!context) {
-    throw new Error("useShoppingSuggestions must be used inside ShoppingSuggestionsProvider");
+    throw new Error(
+      "useShoppingSuggestions must be used inside ShoppingSuggestionsProvider"
+    );
   }
 
   return context;

@@ -13,10 +13,13 @@ import WeeklyPlanner from "@/components/common/WeeklyPlanner";
 import AddMealModal from "@/components/meals/AddMealModal";
 import DashboardCard from "@/components/meals/DashboardCard";
 import MealCard from "@/components/meals/MealCard";
+import MealMatcherCard from "@/components/meals/MealMatcherCard";
 import { SPACING } from "@/constants/spacing";
 import { useMeals } from "@/context/MealsContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import { Meal } from "@/types/meal";
+
+type MealsViewMode = "planner" | "matcher";
 
 export default function MealsScreen() {
   const { colors } = useAppTheme();
@@ -37,6 +40,7 @@ export default function MealsScreen() {
 
   const [isMealModalVisible, setIsMealModalVisible] = useState(false);
   const [editingMeal, setEditingMeal] = useState<Meal | null>(null);
+  const [viewMode, setViewMode] = useState<MealsViewMode>("planner");
 
   const dailyCalories = 2240;
   const proteinTarget = 180;
@@ -112,153 +116,216 @@ export default function MealsScreen() {
           </View>
         </View>
 
-        <View style={styles.summaryRow}>
-          <DashboardCard
-            title="Calories"
-            value={`${dailyCalories}`}
-            subtitle="Daily target"
-          />
-          <DashboardCard
-            title="Protein"
-            value={`${proteinTarget}g`}
-            subtitle="Goal per day"
-          />
-        </View>
-
-        <View style={styles.summaryRow}>
-          <DashboardCard
-            title="Planned Meals"
-            value={`${plannedMeals}`}
-            subtitle={`${selectedDay} plan`}
-          />
-          <DashboardCard
-            title="Water"
-            value="2.5L"
-            subtitle="Example target"
-          />
-        </View>
-
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Weekly Planner</Text>
-          <WeeklyPlanner
-            selectedDay={selectedDay}
-            onDayChange={setSelectedDay}
-          />
-        </View>
-
-        <MyCollapsibleSection title={`Planned Meals for ${selectedDay}`}>
-          <View style={styles.infoCard}>
-            {plannedMealsForSelectedDay.length === 0 ? (
-              <Text style={styles.infoText}>
-                No meals planned for {selectedDay} yet. Tap a saved meal below to
-                add it.
-              </Text>
-            ) : (
-              <View style={styles.plannedMealsList}>
-                {plannedMealsForSelectedDay.map((meal) => (
-                  <View key={meal.id} style={styles.plannedMealRow}>
-                    <TouchableOpacity
-                      style={styles.plannedMealMain}
-                      activeOpacity={0.8}
-                      onPress={() => openEditMealModal(meal)}
-                    >
-                      <View style={styles.plannedMealTextWrap}>
-                        <Text style={styles.plannedMealName}>{meal.name}</Text>
-                        <Text style={styles.plannedMealMeta}>
-                          {meal.ingredients.length}{" "}
-                          {meal.ingredients.length === 1
-                            ? "ingredient"
-                            : "ingredients"}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      onPress={() => toggleMealForSelectedDay(meal.id)}
-                      style={styles.removePlannedButton}
-                    >
-                      <Text style={styles.removePlannedButtonText}>Remove</Text>
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
-        </MyCollapsibleSection>
-
-        <MyCollapsibleSection title="Saved Meals">
-          <View style={styles.savedMealsHeader}>
-            <Text style={styles.savedMealsHelper}>
-              Tap a meal card to edit it. Use the small button to add or remove
-              it from {selectedDay}.
+        <View
+          style={[
+            styles.topTabsWrap,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <TouchableOpacity
+            style={[
+              styles.topTab,
+              viewMode === "planner" && { backgroundColor: colors.primary },
+            ]}
+            onPress={() => setViewMode("planner")}
+          >
+            <Text
+              style={[
+                styles.topTabText,
+                { color: colors.textSecondary },
+                viewMode === "planner" && styles.topTabTextActive,
+              ]}
+            >
+              Planner
             </Text>
-          </View>
+          </TouchableOpacity>
 
-          <View style={styles.mealsList}>
-            {meals.map((meal) => {
-              const isPlanned = isMealPlannedForSelectedDay(meal.id);
+          <TouchableOpacity
+            style={[
+              styles.topTab,
+              viewMode === "matcher" && { backgroundColor: colors.primary },
+            ]}
+            onPress={() => setViewMode("matcher")}
+          >
+            <Text
+              style={[
+                styles.topTabText,
+                { color: colors.textSecondary },
+                viewMode === "matcher" && styles.topTabTextActive,
+              ]}
+            >
+              Matcher
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-              return (
-                <View key={meal.id} style={styles.savedMealItem}>
-                  <TouchableOpacity
-                    activeOpacity={0.88}
-                    onPress={() => openEditMealModal(meal)}
-                  >
-                    <View style={styles.mealCardWrap}>
-                      <MealCard meal={meal} />
-                      {isPlanned && (
-                        <View style={styles.plannedBadge}>
-                          <Text style={styles.plannedBadgeText}>
-                            Planned for {selectedDay}
+        {viewMode === "planner" && (
+          <>
+            <View style={styles.summaryRow}>
+              <DashboardCard
+                title="Calories"
+                value={`${dailyCalories}`}
+                subtitle="Daily target"
+              />
+              <DashboardCard
+                title="Protein"
+                value={`${proteinTarget}g`}
+                subtitle="Goal per day"
+              />
+            </View>
+
+            <View style={styles.summaryRow}>
+              <DashboardCard
+                title="Planned Meals"
+                value={`${plannedMeals}`}
+                subtitle={`${selectedDay} plan`}
+              />
+              <DashboardCard
+                title="Water"
+                value="2.5L"
+                subtitle="Example target"
+              />
+            </View>
+
+            <View style={styles.sectionCard}>
+              <Text style={styles.sectionTitle}>Weekly Planner</Text>
+              <WeeklyPlanner
+                selectedDay={selectedDay}
+                onDayChange={setSelectedDay}
+              />
+            </View>
+
+            <MyCollapsibleSection title={`Planned Meals for ${selectedDay}`}>
+              <View style={styles.infoCard}>
+                {plannedMealsForSelectedDay.length === 0 ? (
+                  <Text style={styles.infoText}>
+                    No meals planned for {selectedDay} yet. Tap a saved meal
+                    below to add it.
+                  </Text>
+                ) : (
+                  <View style={styles.plannedMealsList}>
+                    {plannedMealsForSelectedDay.map((meal) => (
+                      <View key={meal.id} style={styles.plannedMealRow}>
+                        <TouchableOpacity
+                          style={styles.plannedMealMain}
+                          activeOpacity={0.8}
+                          onPress={() => openEditMealModal(meal)}
+                        >
+                          <View style={styles.plannedMealTextWrap}>
+                            <Text style={styles.plannedMealName}>
+                              {meal.name}
+                            </Text>
+                            <Text style={styles.plannedMealMeta}>
+                              {meal.ingredients.length}{" "}
+                              {meal.ingredients.length === 1
+                                ? "ingredient"
+                                : "ingredients"}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          onPress={() => toggleMealForSelectedDay(meal.id)}
+                          style={styles.removePlannedButton}
+                        >
+                          <Text style={styles.removePlannedButtonText}>
+                            Remove
                           </Text>
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+            </MyCollapsibleSection>
+
+            <MyCollapsibleSection title="Saved Meals">
+              <View style={styles.savedMealsHeader}>
+                <Text style={styles.savedMealsHelper}>
+                  Tap a meal card to edit it. Use the small button to add or
+                  remove it from {selectedDay}.
+                </Text>
+              </View>
+
+              <View style={styles.mealsList}>
+                {meals.map((meal) => {
+                  const isPlanned = isMealPlannedForSelectedDay(meal.id);
+
+                  return (
+                    <View key={meal.id} style={styles.savedMealItem}>
+                      <TouchableOpacity
+                        activeOpacity={0.88}
+                        onPress={() => openEditMealModal(meal)}
+                      >
+                        <View style={styles.mealCardWrap}>
+                          <MealCard meal={meal} />
+                          {isPlanned && (
+                            <View style={styles.plannedBadge}>
+                              <Text style={styles.plannedBadgeText}>
+                                Planned for {selectedDay}
+                              </Text>
+                            </View>
+                          )}
                         </View>
-                      )}
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        onPress={() => toggleMealForSelectedDay(meal.id)}
+                        style={[
+                          styles.planToggleButton,
+                          isPlanned
+                            ? styles.planToggleButtonRemove
+                            : styles.planToggleButtonAdd,
+                        ]}
+                      >
+                        <Text style={styles.planToggleButtonText}>
+                          {isPlanned
+                            ? `Remove from ${selectedDay}`
+                            : `Add to ${selectedDay}`}
+                        </Text>
+                      </TouchableOpacity>
                     </View>
-                  </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </MyCollapsibleSection>
 
-                  <TouchableOpacity
-                    onPress={() => toggleMealForSelectedDay(meal.id)}
-                    style={[
-                      styles.planToggleButton,
-                      isPlanned
-                        ? styles.planToggleButtonRemove
-                        : styles.planToggleButtonAdd,
-                    ]}
-                  >
-                    <Text style={styles.planToggleButtonText}>
-                      {isPlanned
-                        ? `Remove from ${selectedDay}`
-                        : `Add to ${selectedDay}`}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              );
-            })}
-          </View>
-        </MyCollapsibleSection>
+            <MyCollapsibleSection title="Profile-Based Targets">
+              <View style={styles.infoCard}>
+                <Text style={styles.infoTitle}>Your target summary</Text>
+                <Text style={styles.infoText}>
+                  This section can later connect to your UserProfileContext and
+                  show calories, protein, carbs, fats, and meal
+                  recommendations.
+                </Text>
+              </View>
+            </MyCollapsibleSection>
 
-        <MyCollapsibleSection title="Profile-Based Targets">
-          <View style={styles.infoCard}>
-            <Text style={styles.infoTitle}>Your target summary</Text>
-            <Text style={styles.infoText}>
-              This section can later connect to your UserProfileContext and show
-              calories, protein, carbs, fats, and meal recommendations.
-            </Text>
-          </View>
-        </MyCollapsibleSection>
+            <MyCollapsibleSection title="Planned Daily Average">
+              <View style={styles.infoCard}>
+                <Text style={styles.infoTitle}>Daily average</Text>
+                <Text style={styles.infoText}>
+                  This section can later show your average daily calories and
+                  macros based on saved meals and your weekly meal plan.
+                </Text>
+              </View>
+            </MyCollapsibleSection>
+          </>
+        )}
 
-        <MyCollapsibleSection title="Planned Daily Average">
-          <View style={styles.infoCard}>
-            <Text style={styles.infoTitle}>Daily average</Text>
-            <Text style={styles.infoText}>
-              This section can later show your average daily calories and macros
-              based on saved meals and your weekly meal plan.
-            </Text>
+        {viewMode === "matcher" && (
+          <View style={styles.matcherWrap}>
+            <MealMatcherCard meals={meals} />
           </View>
-        </MyCollapsibleSection>
+        )}
       </ScrollView>
 
-      <FloatingAddButton onPress={openAddMealModal} />
+      {viewMode === "planner" && (
+        <FloatingAddButton onPress={openAddMealModal} />
+      )}
 
       <AddMealModal
         visible={isMealModalVisible}
@@ -311,6 +378,26 @@ const createStyles = (colors: any) =>
       fontSize: 15,
       color: colors.textSecondary,
       marginTop: SPACING.xs,
+    },
+    topTabsWrap: {
+      flexDirection: "row",
+      borderWidth: 1,
+      borderRadius: 18,
+      padding: 6,
+      marginBottom: SPACING.lg,
+    },
+    topTab: {
+      flex: 1,
+      paddingVertical: 10,
+      borderRadius: 12,
+      alignItems: "center",
+    },
+    topTabText: {
+      fontSize: 14,
+      fontWeight: "700",
+    },
+    topTabTextActive: {
+      color: "#FFFFFF",
     },
     summaryRow: {
       flexDirection: "row",
@@ -440,5 +527,8 @@ const createStyles = (colors: any) =>
       color: "#FFFFFF",
       fontSize: 12,
       fontWeight: "700",
+    },
+    matcherWrap: {
+      marginTop: SPACING.xs,
     },
   });
