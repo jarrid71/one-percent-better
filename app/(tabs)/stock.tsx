@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
+import { useFocusEffect } from "expo-router";
 
 import { useAppTheme } from "@/context/ThemeContext";
 import {
@@ -26,13 +28,20 @@ export default function StockScreen() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [stockItems, setStockItems] = useState<StockItem[]>([]);
 
+  const refreshStockItems = async () => {
+    const items = await loadStockItems();
+    setStockItems(items);
+  };
+
   useEffect(() => {
-    const load = async () => {
-      const items = await loadStockItems();
-      setStockItems(items);
-    };
-    load();
+    refreshStockItems();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshStockItems();
+    }, [])
+  );
 
   const persist = async (items: StockItem[]) => {
     setStockItems(items);
@@ -53,17 +62,23 @@ export default function StockScreen() {
     if (editingId) {
       const updated = stockItems.map((item) =>
         item.id === editingId
-          ? { ...item, name, quantity, unit, lowStockLevel }
+          ? {
+              ...item,
+              name: name.trim(),
+              quantity: quantity.trim(),
+              unit: unit.trim(),
+              lowStockLevel: lowStockLevel.trim(),
+            }
           : item
       );
       await persist(updated);
     } else {
       const newItem: StockItem = {
         id: Date.now().toString(),
-        name,
-        quantity,
-        unit,
-        lowStockLevel,
+        name: name.trim(),
+        quantity: quantity.trim(),
+        unit: unit.trim(),
+        lowStockLevel: lowStockLevel.trim(),
       };
       await persist([newItem, ...stockItems]);
     }
@@ -89,8 +104,10 @@ export default function StockScreen() {
   const isLowStock = (item: StockItem) => {
     const qty = Number(item.quantity);
     const low = Number(item.lowStockLevel);
+
     if (!item.lowStockLevel) return false;
     if (Number.isNaN(qty) || Number.isNaN(low)) return false;
+
     return qty <= low;
   };
 

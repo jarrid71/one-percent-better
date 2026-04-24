@@ -1,7 +1,9 @@
+// constants/mealMatcher.ts
+
 export type MealIngredient = {
   id: string;
   name: string;
-  amount: string;
+  amount?: string;
 };
 
 export type Meal = {
@@ -15,57 +17,98 @@ export type PantryItem = {
   name: string;
 };
 
+export type StockItem = {
+  id: string;
+  name: string;
+  quantity?: number;
+  unit?: string;
+};
+
 export type MealMatchResult = {
   mealId: string;
   mealName: string;
-  totalIngredients: number;
-  matchedIngredients: number;
-  missingIngredients: string[];
   matchPercentage: number;
+  matchedIngredients: number;
+  totalIngredients: number;
+  missingIngredients: string[];
+  statusLabel: string;
 };
 
 function normalizeText(value: string) {
   return value.trim().toLowerCase();
 }
 
+function hasPantryMatch(ingredientName: string, pantryItems: PantryItem[]) {
+  const normalizedIngredient = normalizeText(ingredientName);
+
+  return pantryItems.some((pantryItem) => {
+    const normalizedPantryName = normalizeText(pantryItem.name);
+
+    return (
+      normalizedPantryName === normalizedIngredient ||
+      normalizedPantryName.includes(normalizedIngredient) ||
+      normalizedIngredient.includes(normalizedPantryName)
+    );
+  });
+}
+
 export function getMealMatches(
   meals: Meal[],
   pantryItems: PantryItem[]
 ): MealMatchResult[] {
-  const pantryNames = pantryItems.map((item) => normalizeText(item.name));
+  return meals
+    .map((meal) => {
+      const ingredients = meal.ingredients ?? [];
+      const totalIngredients = ingredients.length;
 
-  const results: MealMatchResult[] = meals.map((meal) => {
-    const ingredientNames = meal.ingredients.map((ingredient) =>
-      normalizeText(ingredient.name)
-    );
+      if (totalIngredients === 0) {
+        return {
+          mealId: meal.id,
+          mealName: meal.name,
+          matchPercentage: 0,
+          matchedIngredients: 0,
+          totalIngredients: 0,
+          missingIngredients: [],
+          statusLabel: "No ingredients",
+        };
+      }
 
-    const missingIngredients = ingredientNames.filter(
-      (ingredientName) => !pantryNames.includes(ingredientName)
-    );
+      const missingIngredients = ingredients
+        .filter((ingredient) => !hasPantryMatch(ingredient.name, pantryItems))
+        .map((ingredient) => ingredient.name);
 
-    const totalIngredients = ingredientNames.length;
-    const matchedIngredients = totalIngredients - missingIngredients.length;
+      const matchedIngredients = totalIngredients - missingIngredients.length;
+      const matchPercentage = Math.round(
+        (matchedIngredients / totalIngredients) * 100
+      );
 
-    const matchPercentage =
-      totalIngredients === 0
-        ? 0
-        : Math.round((matchedIngredients / totalIngredients) * 100);
+      let statusLabel = "Not ready";
 
-    return {
-      mealId: meal.id,
-      mealName: meal.name,
-      totalIngredients,
-      matchedIngredients,
-      missingIngredients,
-      matchPercentage,
-    };
-  });
+      if (matchPercentage === 100) {
+        statusLabel = "Ready to cook 🔥";
+      } else if (matchPercentage >= 70) {
+        statusLabel = "Almost ready 👀";
+      }
 
-  return results.sort((a, b) => {
-    if (b.matchPercentage !== a.matchPercentage) {
-      return b.matchPercentage - a.matchPercentage;
-    }
+      return {
+        mealId: meal.id,
+        mealName: meal.name,
+        matchPercentage,
+        matchedIngredients,
+        totalIngredients,
+        missingIngredients,
+        statusLabel,
+      };
+    })
+    .sort((a, b) => {
+      if (b.matchPercentage !== a.matchPercentage) {
+        return b.matchPercentage - a.matchPercentage;
+      }
 
-    return a.missingIngredients.length - b.missingIngredients.length;
-  });
+      if (a.missingIngredients.length !== b.missingIngredients.length) {
+        return a.missingIngredients.length - b.missingIngredients.length;
+      }
+
+      return a.mealName.localeCompare(b.mealName);
+    });
 }

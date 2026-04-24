@@ -1,6 +1,8 @@
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
+import { useAppTheme } from "@/context/ThemeContext";
+
 type WorkoutTemplate = {
   id: string;
   weekday: string;
@@ -34,38 +36,82 @@ export default function WorkoutTemplateCard({
   onDelete,
   isSelected = false,
 }: WorkoutTemplateCardProps) {
+  const { colors } = useAppTheme();
+
   return (
     <TouchableOpacity
       activeOpacity={0.85}
       onPress={onSelect}
-      style={[styles.card, isSelected && styles.cardSelected]}
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.card,
+          borderColor: isSelected ? colors.primary : colors.border,
+        },
+      ]}
     >
       <View style={styles.headerRow}>
-        <Text style={styles.weekday} numberOfLines={2}>
+        <Text
+          style={[styles.weekday, { color: colors.primary }]}
+          numberOfLines={2}
+        >
           {template.weekday || "No day set"}
         </Text>
 
-        <Text style={styles.duration}>{template.duration} min</Text>
+        <Text style={[styles.duration, { color: colors.textSecondary }]}>
+          {template.duration} min
+        </Text>
       </View>
 
-      <Text style={styles.workoutName}>{template.workoutName}</Text>
+      <Text style={[styles.workoutName, { color: colors.text }]}>
+        {template.workoutName}
+      </Text>
 
-      <Text style={styles.exerciseCount}>
+      <Text style={[styles.exerciseCount, { color: colors.textSecondary }]}>
         {template.exercises.length} exercise
         {template.exercises.length === 1 ? "" : "s"}
       </Text>
 
       <View style={styles.actionsRow}>
-        <TouchableOpacity onPress={onEdit} style={styles.actionButton}>
-          <Text style={styles.actionText}>Edit</Text>
+        <TouchableOpacity
+          onPress={onEdit}
+          style={[
+            styles.actionButton,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.actionText, { color: colors.text }]}>Edit</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={onDuplicate} style={styles.actionButton}>
-          <Text style={styles.actionText}>Copy</Text>
+        <TouchableOpacity
+          onPress={onDuplicate}
+          style={[
+            styles.actionButton,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.actionText, { color: colors.text }]}>Copy</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={onDelete} style={styles.deleteButton}>
-          <Text style={styles.deleteText}>Delete</Text>
+        <TouchableOpacity
+          onPress={onDelete}
+          style={[
+            styles.deleteButton,
+            {
+              backgroundColor: colors.danger + "20",
+              borderColor: colors.danger + "40",
+            },
+          ]}
+        >
+          <Text style={[styles.deleteText, { color: colors.danger }]}>
+            Delete
+          </Text>
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -74,83 +120,61 @@ export default function WorkoutTemplateCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#111827",
     borderRadius: 14,
     padding: 14,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#1f2937",
   },
-
-  cardSelected: {
-    borderColor: "#2563eb",
-  },
-
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
     marginBottom: 8,
   },
-
   weekday: {
     flex: 1,
-    color: "#93c5fd",
     fontSize: 13,
     fontWeight: "700",
     marginRight: 12,
   },
-
   duration: {
-    color: "#9ca3af",
     fontSize: 12,
     fontWeight: "600",
   },
-
   workoutName: {
-    color: "#f9fafb",
     fontSize: 18,
     fontWeight: "700",
     marginBottom: 6,
   },
-
   exerciseCount: {
-    color: "#d1d5db",
     fontSize: 13,
     marginBottom: 12,
   },
-
   actionsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     alignItems: "center",
   },
-
   actionButton: {
-    backgroundColor: "#1f2937",
     borderRadius: 10,
+    borderWidth: 1,
     paddingVertical: 8,
     paddingHorizontal: 14,
     marginRight: 8,
     marginBottom: 6,
   },
-
   actionText: {
-    color: "#f9fafb",
     fontWeight: "600",
     fontSize: 13,
   },
-
   deleteButton: {
-    backgroundColor: "#3f1d1d",
     borderRadius: 10,
+    borderWidth: 1,
     paddingVertical: 8,
     paddingHorizontal: 14,
     marginBottom: 6,
   },
-
   deleteText: {
-    color: "#fca5a5",
     fontWeight: "600",
     fontSize: 13,
   },

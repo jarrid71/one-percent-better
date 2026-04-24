@@ -23,11 +23,18 @@ export default function AddMissingIngredientsButton({
   const handlePress = () => {
     const cleanedIngredients = missingIngredients
       .filter((item) => item.name.trim().length > 0)
-      .map((item) => ({
-        name: item.name.trim(),
-        amount: item.amount?.trim() || "",
-        category: item.category?.trim() || "Other",
-      }));
+      .map((item) => {
+        const trimmedCategory = item.category?.trim();
+
+        return {
+          name: item.name.trim(),
+          amount: item.amount?.trim() || "",
+          category:
+            trimmedCategory && trimmedCategory.length > 0
+              ? trimmedCategory
+              : undefined,
+        };
+      });
 
     if (cleanedIngredients.length === 0) {
       Alert.alert("Nothing to add", "This meal has no missing ingredients.");

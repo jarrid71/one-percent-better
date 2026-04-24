@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Alert,
-  FlatList,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    FlatList,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -15,6 +15,11 @@ import { useFocusEffect } from "expo-router";
 import { SPACING } from "@/constants/spacing";
 import { useShoppingSuggestions } from "@/context/ShoppingSuggestionsContext";
 import { useAppTheme } from "@/context/ThemeContext";
+import {
+    loadStockItems,
+    StockItem as PantryStockItem,
+    saveStockItems,
+} from "@/utils/appstorage";
 
 type ShoppingListItem = {
   id: string;
@@ -23,16 +28,6 @@ type ShoppingListItem = {
   unit: string;
   checked?: boolean;
 };
-
-type ShoppingCategory =
-  | "Protein"
-  | "Carbs"
-  | "Vegetables"
-  | "Fruit"
-  | "Dairy"
-  | "Drinks"
-  | "Pantry"
-  | "Other";
 
 export default function ShoppingListScreen() {
   const { colors } = useAppTheme();
@@ -59,7 +54,11 @@ export default function ShoppingListScreen() {
   const loadShoppingList = async () => {
     try {
       const saved = await AsyncStorage.getItem("shoppingList");
-      if (saved) setItems(JSON.parse(saved));
+      if (saved) {
+        setItems(JSON.parse(saved));
+      } else {
+        setItems([]);
+      }
     } catch (error) {
       console.log("Error loading shopping list:", error);
     }
@@ -67,10 +66,7 @@ export default function ShoppingListScreen() {
 
   const saveShoppingList = async (updatedItems: ShoppingListItem[]) => {
     try {
-      await AsyncStorage.setItem(
-        "shoppingList",
-        JSON.stringify(updatedItems)
-      );
+      await AsyncStorage.setItem("shoppingList", JSON.stringify(updatedItems));
       setItems(updatedItems);
     } catch (error) {
       console.log("Error saving shopping list:", error);
@@ -85,9 +81,9 @@ export default function ShoppingListScreen() {
 
     const newItem: ShoppingListItem = {
       id: Date.now().toString(),
-      name: newItemName,
-      quantity: newItemQuantity,
-      unit: newItemUnit,
+      name: newItemName.trim(),
+      quantity: newItemQuantity.trim(),
+      unit: newItemUnit.trim(),
       checked: false,
     };
 
@@ -98,10 +94,148 @@ export default function ShoppingListScreen() {
     setNewItemUnit("");
   };
 
-  const toggleItem = (id: string) => {
-    const updated = items.map((i) =>
-      i.id === id ? { ...i, checked: !i.checked } : i
+  const addSuggestionToList = (suggestionId: string) => {
+    const suggestion = suggestions.find((item) => item.id === suggestionId);
+
+    if (!suggestion) {
+      return;
+    }
+
+    const alreadyExists = items.some(
+      (item) =>
+        item.name.trim().toLowerCase() === suggestion.name.trim().toLowerCase()
     );
+
+    if (alreadyExists) {
+      Alert.alert(
+        "Already added",
+        `${suggestion.name} is already in your shopping list.`
+      );
+      removeSuggestion(suggestionId);
+      return;
+    }
+
+    const newItem: ShoppingListItem = {
+      id: Date.now().toString(),
+      name: suggestion.name,
+      quantity: suggestion.amount?.trim() || "1",
+      unit: suggestion.category?.trim() || "",
+      checked: false,
+    };
+
+    saveShoppingList([newItem, ...items]);
+    removeSuggestion(suggestionId);
+  };
+
+  const addAllSuggestionsToList = () => {
+    if (suggestions.length === 0) {
+      Alert.alert("No suggestions", "There are no suggestions to add.");
+      return;
+    }
+
+    const existingNames = new Set(
+      items.map((item) => item.name.trim().toLowerCase())
+    );
+
+    const newItems: ShoppingListItem[] = [];
+
+    suggestions.forEach((suggestion, index) => {
+      const normalizedName = suggestion.name.trim().toLowerCase();
+
+      if (existingNames.has(normalizedName)) {
+        return;
+      }
+
+      existingNames.add(normalizedName);
+
+      newItems.push({
+        id: `${Date.now()}-${index}`,
+        name: suggestion.name,
+        quantity: suggestion.amount?.trim() || "1",
+        unit: suggestion.category?.trim() || "",
+        checked: false,
+      });
+    });
+
+    if (newItems.length === 0) {
+      Alert.alert(
+        "Nothing added",
+        "All suggested items are already in your shopping list."
+      );
+      clearSuggestions();
+      return;
+    }
+
+    saveShoppingList([...newItems, ...items]);
+    clearSuggestions();
+
+    Alert.alert(
+      "Added to shopping list",
+      `${newItems.length} suggestion${newItems.length === 1 ? "" : "s"} added.`
+    );
+  };
+
+  const addItemToStock = async (item: ShoppingListItem) => {
+    try {
+      const currentStock = await loadStockItems();
+
+      const existingStockIndex = currentStock.findIndex(
+        (stockItem) =>
+          stockItem.name.trim().toLowerCase() === item.name.trim().toLowerCase()
+      );
+
+      if (existingStockIndex >= 0) {
+        const existingItem = currentStock[existingStockIndex];
+        const existingQuantity = Number(existingItem.quantity) || 0;
+        const incomingQuantity = Number(item.quantity) || 0;
+
+        const updatedStock = [...currentStock];
+        updatedStock[existingStockIndex] = {
+          ...existingItem,
+          quantity: String(existingQuantity + incomingQuantity),
+          unit: existingItem.unit || item.unit || "",
+        };
+
+        await saveStockItems(updatedStock);
+        return;
+      }
+
+      const newStockItem: PantryStockItem = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        name: item.name.trim(),
+        quantity: item.quantity.trim() || "1",
+        unit: item.unit.trim() || "",
+        lowStockLevel: "1",
+      };
+
+      await saveStockItems([newStockItem, ...currentStock]);
+    } catch (error) {
+      console.log("Error adding item to stock:", error);
+    }
+  };
+
+  const toggleItem = async (id: string) => {
+    const currentItem = items.find((item) => item.id === id);
+
+    if (!currentItem) {
+      return;
+    }
+
+    const willBeChecked = !currentItem.checked;
+
+    if (willBeChecked) {
+      await addItemToStock(currentItem);
+
+      const updated = items.filter((item) => item.id !== id);
+      saveShoppingList(updated);
+
+      return;
+    }
+
+    const updated = items.map((item) =>
+      item.id === id ? { ...item, checked: willBeChecked } : item
+    );
+
     saveShoppingList(updated);
   };
 
@@ -123,10 +257,76 @@ export default function ShoppingListScreen() {
           <>
             <View style={styles.heroCard}>
               <Text style={styles.title}>Shopping List</Text>
-              <Text style={styles.subtitle}>
-                Items you need to buy
-              </Text>
+              <Text style={styles.subtitle}>Items you need to buy</Text>
             </View>
+
+            {suggestions.length > 0 && (
+              <View style={styles.card}>
+                <View style={styles.suggestionsHeader}>
+                  <View style={styles.suggestionsHeaderTextWrap}>
+                    <Text style={styles.sectionTitle}>Suggestions</Text>
+                    <Text style={styles.suggestionsSubtitle}>
+                      Missing ingredients from your meals
+                    </Text>
+                  </View>
+
+                  <TouchableOpacity
+                    style={styles.addAllButton}
+                    onPress={addAllSuggestionsToList}
+                  >
+                    <Text style={styles.addAllButtonText}>Add All</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.suggestionsList}>
+                  {suggestions.map((suggestion) => (
+                    <View key={suggestion.id} style={styles.suggestionCard}>
+                      <View style={styles.suggestionTopRow}>
+                        <View style={styles.suggestionTextWrap}>
+                          <Text style={styles.suggestionName}>
+                            {suggestion.name}
+                          </Text>
+
+                          {!!suggestion.amount && (
+                            <Text style={styles.suggestionMeta}>
+                              Amount: {suggestion.amount}
+                            </Text>
+                          )}
+                        </View>
+
+                        {!!suggestion.category && (
+                          <View style={styles.categoryBadge}>
+                            <Text style={styles.categoryBadgeText}>
+                              {suggestion.category}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+
+                      <View style={styles.suggestionActions}>
+                        <TouchableOpacity
+                          style={styles.suggestionAddButton}
+                          onPress={() => addSuggestionToList(suggestion.id)}
+                        >
+                          <Text style={styles.suggestionAddButtonText}>
+                            Add
+                          </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={styles.suggestionRemoveButton}
+                          onPress={() => removeSuggestion(suggestion.id)}
+                        >
+                          <Text style={styles.suggestionRemoveButtonText}>
+                            Remove
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
 
             <View style={styles.card}>
               <Text style={styles.sectionTitle}>Add Item</Text>
@@ -141,7 +341,7 @@ export default function ShoppingListScreen() {
 
               <View style={styles.row}>
                 <TextInput
-                  style={[styles.input, { flex: 1 }]}
+                  style={[styles.input, styles.rowInput]}
                   placeholder="Qty"
                   placeholderTextColor={colors.textMuted}
                   value={newItemQuantity}
@@ -149,7 +349,7 @@ export default function ShoppingListScreen() {
                 />
 
                 <TextInput
-                  style={[styles.input, { flex: 1 }]}
+                  style={[styles.input, styles.rowInput]}
                   placeholder="Unit"
                   placeholderTextColor={colors.textMuted}
                   value={newItemUnit}
@@ -161,9 +361,7 @@ export default function ShoppingListScreen() {
                 style={styles.primaryButton}
                 onPress={addManualItem}
               >
-                <Text style={styles.primaryButtonText}>
-                  Add Item
-                </Text>
+                <Text style={styles.primaryButtonText}>Add Item</Text>
               </TouchableOpacity>
             </View>
 
@@ -171,16 +369,14 @@ export default function ShoppingListScreen() {
               style={styles.secondaryButton}
               onPress={clearCheckedItems}
             >
-              <Text style={styles.secondaryButtonText}>
-                Clear Checked
-              </Text>
+              <Text style={styles.secondaryButtonText}>Clear Checked</Text>
             </TouchableOpacity>
           </>
         }
         renderItem={({ item }) => (
           <View style={styles.itemCard}>
             <View style={styles.rowBetween}>
-              <View>
+              <View style={styles.itemTextWrap}>
                 <Text
                   style={[
                     styles.itemName,
@@ -243,6 +439,8 @@ const createStyles = (colors: any) =>
       borderRadius: 16,
       padding: SPACING.lg,
       marginBottom: SPACING.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     title: {
       fontSize: 26,
@@ -251,17 +449,119 @@ const createStyles = (colors: any) =>
     },
     subtitle: {
       color: colors.textSecondary,
+      marginTop: 4,
     },
     card: {
       backgroundColor: colors.card,
       borderRadius: 16,
       padding: SPACING.md,
       marginBottom: SPACING.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     sectionTitle: {
       color: colors.text,
       fontWeight: "700",
       marginBottom: SPACING.sm,
+      fontSize: 16,
+    },
+    suggestionsHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: SPACING.sm,
+      marginBottom: SPACING.sm,
+    },
+    suggestionsHeaderTextWrap: {
+      flex: 1,
+    },
+    suggestionsSubtitle: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      marginTop: 2,
+    },
+    addAllButton: {
+      backgroundColor: colors.primary,
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+      borderRadius: 10,
+    },
+    addAllButtonText: {
+      color: colors.background,
+      fontWeight: "700",
+      fontSize: 13,
+    },
+    suggestionsList: {
+      gap: SPACING.sm,
+    },
+    suggestionCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      padding: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    suggestionTopRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      gap: SPACING.sm,
+      marginBottom: SPACING.sm,
+    },
+    suggestionTextWrap: {
+      flex: 1,
+    },
+    suggestionName: {
+      color: colors.text,
+      fontWeight: "700",
+      fontSize: 14,
+    },
+    suggestionMeta: {
+      color: colors.textSecondary,
+      fontSize: 12,
+      marginTop: 2,
+    },
+    categoryBadge: {
+      backgroundColor: colors.primaryLight,
+      borderRadius: 999,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      alignSelf: "flex-start",
+    },
+    categoryBadgeText: {
+      color: colors.text,
+      fontWeight: "700",
+      fontSize: 11,
+    },
+    suggestionActions: {
+      flexDirection: "row",
+      gap: SPACING.sm,
+    },
+    suggestionAddButton: {
+      flex: 1,
+      backgroundColor: colors.primary,
+      borderRadius: 10,
+      paddingVertical: 10,
+      alignItems: "center",
+    },
+    suggestionAddButtonText: {
+      color: colors.background,
+      fontWeight: "700",
+      fontSize: 13,
+    },
+    suggestionRemoveButton: {
+      flex: 1,
+      backgroundColor: colors.surfaceSoft,
+      borderRadius: 10,
+      paddingVertical: 10,
+      alignItems: "center",
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    suggestionRemoveButtonText: {
+      color: colors.text,
+      fontWeight: "700",
+      fontSize: 13,
     },
     input: {
       backgroundColor: colors.surface,
@@ -269,15 +569,22 @@ const createStyles = (colors: any) =>
       borderRadius: 12,
       padding: 12,
       marginBottom: SPACING.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     row: {
       flexDirection: "row",
       gap: SPACING.sm,
     },
+    rowInput: {
+      flex: 1,
+    },
     rowBetween: {
       flexDirection: "row",
       justifyContent: "space-between",
+      alignItems: "center",
       marginTop: SPACING.sm,
+      gap: SPACING.sm,
     },
     primaryButton: {
       backgroundColor: colors.primary,
@@ -286,7 +593,7 @@ const createStyles = (colors: any) =>
       alignItems: "center",
     },
     primaryButtonText: {
-      color: "#fff",
+      color: colors.background,
       fontWeight: "700",
     },
     secondaryButton: {
@@ -294,6 +601,8 @@ const createStyles = (colors: any) =>
       padding: 12,
       borderRadius: 12,
       alignItems: "center",
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     secondaryButtonText: {
       color: colors.text,
@@ -304,6 +613,11 @@ const createStyles = (colors: any) =>
       padding: 12,
       borderRadius: 12,
       marginBottom: SPACING.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    itemTextWrap: {
+      flex: 1,
     },
     itemName: {
       color: colors.text,
@@ -316,11 +630,14 @@ const createStyles = (colors: any) =>
     itemMeta: {
       color: colors.textSecondary,
       fontSize: 12,
+      marginTop: 2,
     },
     status: {
       backgroundColor: colors.surface,
       padding: 6,
       borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     statusText: {
       color: colors.text,
@@ -329,12 +646,14 @@ const createStyles = (colors: any) =>
       backgroundColor: colors.primary,
       padding: 8,
       borderRadius: 8,
+      minWidth: 72,
+      alignItems: "center",
     },
     delete: {
       backgroundColor: colors.danger,
     },
     smallButtonText: {
-      color: "#fff",
+      color: colors.background,
       fontSize: 12,
       fontWeight: "700",
     },

@@ -35,12 +35,143 @@ function normalizeName(name: string) {
   return name.trim().toLowerCase();
 }
 
+function getAutoCategory(name: string) {
+  const normalized = normalizeName(name);
+
+  const proteinKeywords = [
+    "chicken",
+    "beef",
+    "steak",
+    "mince",
+    "turkey",
+    "pork",
+    "bacon",
+    "ham",
+    "salmon",
+    "tuna",
+    "fish",
+    "egg",
+    "eggs",
+    "protein",
+    "yogurt",
+    "greek yogurt",
+  ];
+
+  const carbsKeywords = [
+    "rice",
+    "pasta",
+    "noodle",
+    "bread",
+    "wrap",
+    "tortilla",
+    "oats",
+    "potato",
+    "sweet potato",
+    "cereal",
+    "quinoa",
+  ];
+
+  const vegetableKeywords = [
+    "broccoli",
+    "spinach",
+    "lettuce",
+    "tomato",
+    "tomatoes",
+    "onion",
+    "carrot",
+    "capsicum",
+    "pepper",
+    "zucchini",
+    "cucumber",
+    "mushroom",
+    "garlic",
+    "avocado",
+  ];
+
+  const fruitKeywords = [
+    "apple",
+    "banana",
+    "berries",
+    "berry",
+    "blueberry",
+    "strawberry",
+    "orange",
+    "grape",
+    "watermelon",
+    "pineapple",
+    "mango",
+    "kiwi",
+    "lemon",
+    "lime",
+  ];
+
+  const dairyKeywords = [
+    "milk",
+    "cheese",
+    "butter",
+    "cream",
+    "yoghurt",
+    "yogurt",
+    "mozzarella",
+    "parmesan",
+    "feta",
+  ];
+
+  const drinksKeywords = [
+    "juice",
+    "water",
+    "soft drink",
+    "soda",
+    "coffee",
+    "tea",
+    "milkshake",
+  ];
+
+  const pantryKeywords = [
+    "salt",
+    "pepper",
+    "oil",
+    "olive oil",
+    "sauce",
+    "soy sauce",
+    "bbq sauce",
+    "tomato sauce",
+    "spice",
+    "flour",
+    "sugar",
+    "honey",
+    "peanut butter",
+    "jam",
+    "vinegar",
+    "stock",
+  ];
+
+  const matchesKeyword = (keywords: string[]) =>
+    keywords.some((keyword) => normalized.includes(keyword));
+
+  if (matchesKeyword(proteinKeywords)) return "Protein";
+  if (matchesKeyword(carbsKeywords)) return "Carbs";
+  if (matchesKeyword(vegetableKeywords)) return "Vegetables";
+  if (matchesKeyword(fruitKeywords)) return "Fruit";
+  if (matchesKeyword(dairyKeywords)) return "Dairy";
+  if (matchesKeyword(drinksKeywords)) return "Drinks";
+  if (matchesKeyword(pantryKeywords)) return "Pantry";
+
+  return "Other";
+}
+
 function createSuggestion(item: AddSuggestionInput): ShoppingSuggestion {
+  const trimmedName = item.name.trim();
+  const trimmedCategory = item.category?.trim();
+
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-    name: item.name.trim(),
+    name: trimmedName,
     amount: item.amount?.trim() || "",
-    category: item.category?.trim() || "Other",
+    category:
+      trimmedCategory && trimmedCategory.length > 0
+        ? trimmedCategory
+        : getAutoCategory(trimmedName),
   };
 }
 
@@ -56,7 +187,8 @@ export function ShoppingSuggestionsProvider({
 
     setSuggestions((current) => {
       const exists = current.some(
-        (suggestion) => normalizeName(suggestion.name) === normalizeName(item.name)
+        (suggestion) =>
+          normalizeName(suggestion.name) === normalizeName(item.name)
       );
 
       if (exists) {
