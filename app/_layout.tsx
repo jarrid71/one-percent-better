@@ -12,6 +12,7 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React from "react";
 import "react-native-reanimated";
+import { StockProvider } from "../context/StockContext";
 
 function AppNavigator() {
   const { navigationTheme, statusBarStyle, colors, isThemeLoaded } =
@@ -58,13 +59,15 @@ export default function RootLayout() {
     <AppThemeProvider>
       <UserProfileProvider>
         <MealsProvider>
-          <ShoppingSuggestionsProvider>
-            <WorkoutsProvider>
-              <FeatureSuggestionsProvider>
-                <AppNavigator />
-              </FeatureSuggestionsProvider>
-            </WorkoutsProvider>
-          </ShoppingSuggestionsProvider>
+          <StockProvider>
+            <ShoppingSuggestionsProvider>
+              <WorkoutsProvider>
+                <FeatureSuggestionsProvider>
+                  <AppNavigator />
+                </FeatureSuggestionsProvider>
+              </WorkoutsProvider>
+            </ShoppingSuggestionsProvider>
+          </StockProvider>
         </MealsProvider>
       </UserProfileProvider>
     </AppThemeProvider>

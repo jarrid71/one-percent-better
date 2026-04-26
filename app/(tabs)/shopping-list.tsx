@@ -15,11 +15,7 @@ import { useFocusEffect } from "expo-router";
 import { SPACING } from "@/constants/spacing";
 import { useShoppingSuggestions } from "@/context/ShoppingSuggestionsContext";
 import { useAppTheme } from "@/context/ThemeContext";
-import {
-    loadStockItems,
-    StockItem as PantryStockItem,
-    saveStockItems,
-} from "@/utils/appstorage";
+import { useStock } from "../../context/StockContext";
 
 type ShoppingListItem = {
   id: string;
@@ -37,6 +33,8 @@ export default function ShoppingListScreen() {
   const [newItemName, setNewItemName] = useState("");
   const [newItemQuantity, setNewItemQuantity] = useState("");
   const [newItemUnit, setNewItemUnit] = useState("");
+
+  const { addToStock } = useStock();
 
   const { suggestions, removeSuggestion, clearSuggestions } =
     useShoppingSuggestions();
@@ -177,38 +175,13 @@ export default function ShoppingListScreen() {
 
   const addItemToStock = async (item: ShoppingListItem) => {
     try {
-      const currentStock = await loadStockItems();
-
-      const existingStockIndex = currentStock.findIndex(
-        (stockItem) =>
-          stockItem.name.trim().toLowerCase() === item.name.trim().toLowerCase()
-      );
-
-      if (existingStockIndex >= 0) {
-        const existingItem = currentStock[existingStockIndex];
-        const existingQuantity = Number(existingItem.quantity) || 0;
-        const incomingQuantity = Number(item.quantity) || 0;
-
-        const updatedStock = [...currentStock];
-        updatedStock[existingStockIndex] = {
-          ...existingItem,
-          quantity: String(existingQuantity + incomingQuantity),
-          unit: existingItem.unit || item.unit || "",
-        };
-
-        await saveStockItems(updatedStock);
-        return;
-      }
-
-      const newStockItem: PantryStockItem = {
+      await addToStock({
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
         name: item.name.trim(),
         quantity: item.quantity.trim() || "1",
         unit: item.unit.trim() || "",
         lowStockLevel: "1",
-      };
-
-      await saveStockItems([newStockItem, ...currentStock]);
+      });
     } catch (error) {
       console.log("Error adding item to stock:", error);
     }

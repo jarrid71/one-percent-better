@@ -18,6 +18,7 @@ import { SPACING } from "@/constants/spacing";
 import { useMeals } from "@/context/MealsContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import { Meal } from "@/types/meal";
+import { useStock } from "../../context/StockContext";
 
 type MealsViewMode = "planner" | "matcher";
 
@@ -37,6 +38,8 @@ export default function MealsScreen() {
     getMealsForDay,
     isLoading,
   } = useMeals();
+
+  const { stock } = useStock();
 
   const [isMealModalVisible, setIsMealModalVisible] = useState(false);
   const [editingMeal, setEditingMeal] = useState<Meal | null>(null);
@@ -318,7 +321,7 @@ export default function MealsScreen() {
 
         {viewMode === "matcher" && (
           <View style={styles.matcherWrap}>
-            <MealMatcherCard meals={meals} />
+            <MealMatcherCard meals={meals} key={stock.length} />
           </View>
         )}
       </ScrollView>
