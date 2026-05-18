@@ -1,7 +1,7 @@
-import React, { useCallback, useMemo, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+// components/meals/MealMatcherCard.tsx
 
-import { useFocusEffect } from "expo-router";
+import React, { useMemo } from "react";
+import { StyleSheet, Text, View } from "react-native";
 
 import MealMatcherResultCard from "@/components/meals/MealMatcherResultCard";
 import {
@@ -10,8 +10,8 @@ import {
   MealMatchResult,
   PantryItem,
 } from "@/constants/mealMatcher";
+import { useStock } from "@/context/StockContext";
 import { useAppTheme } from "@/context/ThemeContext";
-import { loadStockItems, StockItem } from "@/utils/appstorage";
 
 type Props = {
   meals: Meal[];
@@ -19,27 +19,16 @@ type Props = {
 
 export default function MealMatcherCard({ meals }: Props) {
   const { colors } = useAppTheme();
+  const { stock } = useStock();
+
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const [stockItems, setStockItems] = useState<StockItem[]>([]);
-
-  const refreshStockItems = async () => {
-    const items = await loadStockItems();
-    setStockItems(items);
-  };
-
-  useFocusEffect(
-    useCallback(() => {
-      refreshStockItems();
-    }, [])
-  );
-
   const pantryItems: PantryItem[] = useMemo(() => {
-    return stockItems.map((item) => ({
+    return stock.map((item) => ({
       id: item.id,
       name: item.name,
     }));
-  }, [stockItems]);
+  }, [stock]);
 
   const matches: MealMatchResult[] = useMemo(() => {
     return getMealMatches(meals, pantryItems);
@@ -48,35 +37,24 @@ export default function MealMatcherCard({ meals }: Props) {
   return (
     <View style={styles.card}>
       <Text style={styles.title}>Pantry Meal Match</Text>
+
       <Text style={styles.subtitle}>Based on your current home stock</Text>
 
-      {stockItems.length === 0 ? (
+      {stock.length === 0 ? (
         <View style={styles.emptyBox}>
           <Text style={styles.emptyText}>
             No stock items found. Add items in the Stock tab.
           </Text>
         </View>
-      ) : matches.length === 0 ? (
-        <View style={styles.emptyBox}>
-          <Text style={styles.emptyText}>
-            No meals found yet. Add a meal first.
-          </Text>
-        </View>
       ) : (
-        matches.map((match) => {
-          const missingIngredients = match.missingIngredients.map((name) => ({
-            name,
-          }));
-
-          return (
-            <MealMatcherResultCard
-              key={match.mealId}
-              mealName={match.mealName}
-              matchPercent={match.matchPercentage}
-              missingIngredients={missingIngredients}
-            />
-          );
-        })
+        matches.map((match) => (
+          <MealMatcherResultCard
+            key={match.mealId}
+            mealName={match.mealName}
+            matchPercent={match.matchPercentage}
+            missingIngredients={match.missingIngredients}
+          />
+        ))
       )}
     </View>
   );

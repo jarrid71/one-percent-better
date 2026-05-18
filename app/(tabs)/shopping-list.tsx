@@ -1,21 +1,24 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import {
-    Alert,
-    FlatList,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-} from "react-native";
+// app/(tabs)/shopping-list.tsx
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "expo-router";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Alert,
+  FlatList,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 import { SPACING } from "@/constants/spacing";
 import { useShoppingSuggestions } from "@/context/ShoppingSuggestionsContext";
 import { useAppTheme } from "@/context/ThemeContext";
+import BarcodeScannerModal from "../../components/common/BarcodeScannerModal";
 import { useStock } from "../../context/StockContext";
+import { lookupProductByBarcode } from "../../utils/productLookup";
 
 type ShoppingListItem = {
   id: string;
@@ -33,6 +36,7 @@ export default function ShoppingListScreen() {
   const [newItemName, setNewItemName] = useState("");
   const [newItemQuantity, setNewItemQuantity] = useState("");
   const [newItemUnit, setNewItemUnit] = useState("");
+  const [scannerVisible, setScannerVisible] = useState(false);
 
   const { addToStock } = useStock();
 
@@ -52,11 +56,7 @@ export default function ShoppingListScreen() {
   const loadShoppingList = async () => {
     try {
       const saved = await AsyncStorage.getItem("shoppingList");
-      if (saved) {
-        setItems(JSON.parse(saved));
-      } else {
-        setItems([]);
-      }
+      setItems(saved ? JSON.parse(saved) : []);
     } catch (error) {
       console.log("Error loading shopping list:", error);
     }
@@ -69,6 +69,36 @@ export default function ShoppingListScreen() {
     } catch (error) {
       console.log("Error saving shopping list:", error);
     }
+  };
+
+  const addScannedItemToList = async (barcode: string) => {
+    const product = await lookupProductByBarcode(barcode);
+
+    const alreadyExists = items.some(
+      (item) => item.name.trim().toLowerCase() === product.name.trim().toLowerCase()
+    );
+
+    if (alreadyExists) {
+      Alert.alert("Already added", `${product.name} is already in your shopping list.`);
+      return;
+    }
+
+    const newItem: ShoppingListItem = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      name: product.name,
+      quantity: "1",
+      unit: product.quantity || "",
+      checked: false,
+    };
+
+    await saveShoppingList([newItem, ...items]);
+
+    Alert.alert(
+      product.found ? "Product added" : "Barcode added",
+      product.found
+        ? `${product.name} was added to your shopping list.`
+        : "Product was not found, so the barcode was added instead."
+    );
   };
 
   const addManualItem = () => {
@@ -95,9 +125,7 @@ export default function ShoppingListScreen() {
   const addSuggestionToList = (suggestionId: string) => {
     const suggestion = suggestions.find((item) => item.id === suggestionId);
 
-    if (!suggestion) {
-      return;
-    }
+    if (!suggestion) return;
 
     const alreadyExists = items.some(
       (item) =>
@@ -140,9 +168,7 @@ export default function ShoppingListScreen() {
     suggestions.forEach((suggestion, index) => {
       const normalizedName = suggestion.name.trim().toLowerCase();
 
-      if (existingNames.has(normalizedName)) {
-        return;
-      }
+      if (existingNames.has(normalizedName)) return;
 
       existingNames.add(normalizedName);
 
@@ -190,9 +216,7 @@ export default function ShoppingListScreen() {
   const toggleItem = async (id: string) => {
     const currentItem = items.find((item) => item.id === id);
 
-    if (!currentItem) {
-      return;
-    }
+    if (!currentItem) return;
 
     const willBeChecked = !currentItem.checked;
 
@@ -281,9 +305,7 @@ export default function ShoppingListScreen() {
                           style={styles.suggestionAddButton}
                           onPress={() => addSuggestionToList(suggestion.id)}
                         >
-                          <Text style={styles.suggestionAddButtonText}>
-                            Add
-                          </Text>
+                          <Text style={styles.suggestionAddButtonText}>Add</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
@@ -303,6 +325,13 @@ export default function ShoppingListScreen() {
 
             <View style={styles.card}>
               <Text style={styles.sectionTitle}>Add Item</Text>
+
+              <TouchableOpacity
+                style={styles.scanButton}
+                onPress={() => setScannerVisible(true)}
+              >
+                <Text style={styles.scanButtonText}>Scan Barcode</Text>
+              </TouchableOpacity>
 
               <TextInput
                 style={styles.input}
@@ -350,14 +379,10 @@ export default function ShoppingListScreen() {
           <View style={styles.itemCard}>
             <View style={styles.rowBetween}>
               <View style={styles.itemTextWrap}>
-                <Text
-                  style={[
-                    styles.itemName,
-                    item.checked && styles.itemChecked,
-                  ]}
-                >
+                <Text style={[styles.itemName, item.checked && styles.itemChecked]}>
                   {item.name}
                 </Text>
+
                 <Text style={styles.itemMeta}>
                   {item.quantity} {item.unit}
                 </Text>
@@ -392,6 +417,12 @@ export default function ShoppingListScreen() {
             </View>
           </View>
         )}
+      />
+
+      <BarcodeScannerModal
+        visible={scannerVisible}
+        onClose={() => setScannerVisible(false)}
+        onScanned={addScannedItemToList}
       />
     </View>
   );
@@ -567,6 +598,19 @@ const createStyles = (colors: any) =>
     },
     primaryButtonText: {
       color: colors.background,
+      fontWeight: "700",
+    },
+    scanButton: {
+      backgroundColor: colors.surface,
+      padding: 12,
+      borderRadius: 12,
+      alignItems: "center",
+      marginBottom: SPACING.sm,
+      borderWidth: 1,
+      borderColor: colors.primary,
+    },
+    scanButtonText: {
+      color: colors.primary,
       fontWeight: "700",
     },
     secondaryButton: {
