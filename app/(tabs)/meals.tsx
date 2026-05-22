@@ -1,3 +1,5 @@
+// app/(tabs)/meals.tsx
+
 import React, { useMemo, useState } from "react";
 import {
   ScrollView,
@@ -8,10 +10,8 @@ import {
 } from "react-native";
 
 import FloatingAddButton from "@/components/common/FloatingAddButton";
-import MyCollapsibleSection from "@/components/common/MyCollapsibleSection";
 import WeeklyPlanner from "@/components/common/WeeklyPlanner";
 import AddMealModal from "@/components/meals/AddMealModal";
-import DashboardCard from "@/components/meals/DashboardCard";
 import MealCard from "@/components/meals/MealCard";
 import MealMatcherCard from "@/components/meals/MealMatcherCard";
 import { SPACING } from "@/constants/spacing";
@@ -20,7 +20,7 @@ import { useAppTheme } from "@/context/ThemeContext";
 import { Meal } from "@/types/meal";
 import { useStock } from "../../context/StockContext";
 
-type MealsViewMode = "planner" | "matcher";
+type MealsViewMode = "cook" | "saved" | "planner";
 
 export default function MealsScreen() {
   const { colors } = useAppTheme();
@@ -41,17 +41,11 @@ export default function MealsScreen() {
 
   const { stock } = useStock();
 
+  const [viewMode, setViewMode] = useState<MealsViewMode>("cook");
   const [isMealModalVisible, setIsMealModalVisible] = useState(false);
   const [editingMeal, setEditingMeal] = useState<Meal | null>(null);
-  const [viewMode, setViewMode] = useState<MealsViewMode>("planner");
 
-  const dailyCalories = 2240;
-  const proteinTarget = 180;
-  const plannedMeals = getMealsForDay(selectedDay).length;
-
-  const greeting = useMemo(() => {
-    return "Fuel your day";
-  }, []);
+  const plannedMealsForSelectedDay = getMealsForDay(selectedDay);
 
   const openAddMealModal = () => {
     setEditingMeal(null);
@@ -81,6 +75,10 @@ export default function MealsScreen() {
     closeMealModal();
   };
 
+  const isMealPlannedForSelectedDay = (mealId: string) => {
+    return getMealsForDay(selectedDay).some((meal) => meal.id === mealId);
+  };
+
   const toggleMealForSelectedDay = (mealId: string) => {
     const isAlreadyPlanned = isMealPlannedForSelectedDay(mealId);
 
@@ -90,12 +88,6 @@ export default function MealsScreen() {
       addMealToDay(selectedDay, mealId);
     }
   };
-
-  const isMealPlannedForSelectedDay = (mealId: string) => {
-    return getMealsForDay(selectedDay).some((meal) => meal.id === mealId);
-  };
-
-  const plannedMealsForSelectedDay = getMealsForDay(selectedDay);
 
   if (isLoading) {
     return (
@@ -112,221 +104,231 @@ export default function MealsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <View>
-            <Text style={styles.overline}>MEAL DASHBOARD</Text>
-            <Text style={styles.screenTitle}>Meals</Text>
-            <Text style={styles.subtitle}>{greeting}</Text>
-          </View>
+          <Text style={styles.overline}>MEALS</Text>
+          <Text style={styles.screenTitle}>Meal Assistant</Text>
+          <Text style={styles.subtitle}>
+            Cook from stock, save meals, and plan your week.
+          </Text>
         </View>
 
-        <View
-          style={[
-            styles.topTabsWrap,
-            {
-              backgroundColor: colors.card,
-              borderColor: colors.border,
-            },
-          ]}
-        >
+        <View style={styles.tabsWrap}>
           <TouchableOpacity
             style={[
-              styles.topTab,
-              viewMode === "planner" && { backgroundColor: colors.primary },
+              styles.tabButton,
+              viewMode === "cook" && styles.tabButtonActive,
+            ]}
+            onPress={() => setViewMode("cook")}
+          >
+            <Text
+              style={[
+                styles.tabText,
+                viewMode === "cook" && styles.tabTextActive,
+              ]}
+            >
+              Cook Now
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.tabButton,
+              viewMode === "saved" && styles.tabButtonActive,
+            ]}
+            onPress={() => setViewMode("saved")}
+          >
+            <Text
+              style={[
+                styles.tabText,
+                viewMode === "saved" && styles.tabTextActive,
+              ]}
+            >
+              Saved
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.tabButton,
+              viewMode === "planner" && styles.tabButtonActive,
             ]}
             onPress={() => setViewMode("planner")}
           >
             <Text
               style={[
-                styles.topTabText,
-                { color: colors.textSecondary },
-                viewMode === "planner" && styles.topTabTextActive,
+                styles.tabText,
+                viewMode === "planner" && styles.tabTextActive,
               ]}
             >
               Planner
             </Text>
           </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.topTab,
-              viewMode === "matcher" && { backgroundColor: colors.primary },
-            ]}
-            onPress={() => setViewMode("matcher")}
-          >
-            <Text
-              style={[
-                styles.topTabText,
-                { color: colors.textSecondary },
-                viewMode === "matcher" && styles.topTabTextActive,
-              ]}
-            >
-              Matcher
-            </Text>
-          </TouchableOpacity>
         </View>
 
+        {viewMode === "cook" && (
+          <View style={styles.section}>
+            <View style={styles.introCard}>
+              <Text style={styles.sectionTitle}>What can I cook?</Text>
+              <Text style={styles.helperText}>
+                Based on your current stock, this shows which saved meals are
+                ready or nearly ready.
+              </Text>
+            </View>
+
+            {meals.length === 0 ? (
+              <View style={styles.emptyCard}>
+                <Text style={styles.emptyTitle}>No saved meals yet</Text>
+                <Text style={styles.emptyText}>
+                  Add some meals first, then this area will show what you can
+                  cook from your pantry.
+                </Text>
+              </View>
+            ) : stock.length === 0 ? (
+              <View style={styles.emptyCard}>
+                <Text style={styles.emptyTitle}>No stock added yet</Text>
+                <Text style={styles.emptyText}>
+                  Add items in the Stock tab so Meal Matcher can compare your
+                  pantry against your meals.
+                </Text>
+              </View>
+            ) : (
+              <MealMatcherCard meals={meals} key={stock.length} />
+            )}
+          </View>
+        )}
+
+        {viewMode === "saved" && (
+          <View style={styles.section}>
+            <View style={styles.introCard}>
+              <Text style={styles.sectionTitle}>Saved Meals</Text>
+              <Text style={styles.helperText}>
+                Tap a meal to edit it. Use the plus button to add a new meal.
+              </Text>
+            </View>
+
+            {meals.length === 0 ? (
+              <View style={styles.emptyCard}>
+                <Text style={styles.emptyTitle}>No meals saved</Text>
+                <Text style={styles.emptyText}>
+                  Press the plus button to create your first meal.
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.mealsList}>
+                {meals.map((meal) => (
+                  <TouchableOpacity
+                    key={meal.id}
+                    activeOpacity={0.88}
+                    onPress={() => openEditMealModal(meal)}
+                  >
+                    <MealCard meal={meal} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
+
         {viewMode === "planner" && (
-          <>
-            <View style={styles.summaryRow}>
-              <DashboardCard
-                title="Calories"
-                value={`${dailyCalories}`}
-                subtitle="Daily target"
-              />
-              <DashboardCard
-                title="Protein"
-                value={`${proteinTarget}g`}
-                subtitle="Goal per day"
-              />
-            </View>
-
-            <View style={styles.summaryRow}>
-              <DashboardCard
-                title="Planned Meals"
-                value={`${plannedMeals}`}
-                subtitle={`${selectedDay} plan`}
-              />
-              <DashboardCard
-                title="Water"
-                value="2.5L"
-                subtitle="Example target"
-              />
-            </View>
-
-            <View style={styles.sectionCard}>
+          <View style={styles.section}>
+            <View style={styles.introCard}>
               <Text style={styles.sectionTitle}>Weekly Planner</Text>
+              <Text style={styles.helperText}>
+                Pick a day, then add or remove meals from that day.
+              </Text>
+            </View>
+
+            <View style={styles.card}>
               <WeeklyPlanner
                 selectedDay={selectedDay}
                 onDayChange={setSelectedDay}
               />
             </View>
 
-            <MyCollapsibleSection title={`Planned Meals for ${selectedDay}`}>
-              <View style={styles.infoCard}>
-                {plannedMealsForSelectedDay.length === 0 ? (
-                  <Text style={styles.infoText}>
-                    No meals planned for {selectedDay} yet. Tap a saved meal
-                    below to add it.
-                  </Text>
-                ) : (
-                  <View style={styles.plannedMealsList}>
-                    {plannedMealsForSelectedDay.map((meal) => (
-                      <View key={meal.id} style={styles.plannedMealRow}>
-                        <TouchableOpacity
-                          style={styles.plannedMealMain}
-                          activeOpacity={0.8}
-                          onPress={() => openEditMealModal(meal)}
-                        >
-                          <View style={styles.plannedMealTextWrap}>
-                            <Text style={styles.plannedMealName}>
-                              {meal.name}
-                            </Text>
-                            <Text style={styles.plannedMealMeta}>
-                              {meal.ingredients.length}{" "}
-                              {meal.ingredients.length === 1
-                                ? "ingredient"
-                                : "ingredients"}
-                            </Text>
-                          </View>
-                        </TouchableOpacity>
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Planned for {selectedDay}</Text>
 
-                        <TouchableOpacity
-                          onPress={() => toggleMealForSelectedDay(meal.id)}
-                          style={styles.removePlannedButton}
-                        >
-                          <Text style={styles.removePlannedButtonText}>
-                            Remove
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
-            </MyCollapsibleSection>
-
-            <MyCollapsibleSection title="Saved Meals">
-              <View style={styles.savedMealsHeader}>
-                <Text style={styles.savedMealsHelper}>
-                  Tap a meal card to edit it. Use the small button to add or
-                  remove it from {selectedDay}.
+              {plannedMealsForSelectedDay.length === 0 ? (
+                <Text style={styles.emptyText}>
+                  No meals planned for {selectedDay} yet.
                 </Text>
-              </View>
-
-              <View style={styles.mealsList}>
-                {meals.map((meal) => {
-                  const isPlanned = isMealPlannedForSelectedDay(meal.id);
-
-                  return (
-                    <View key={meal.id} style={styles.savedMealItem}>
+              ) : (
+                <View style={styles.plannedMealsList}>
+                  {plannedMealsForSelectedDay.map((meal) => (
+                    <View key={meal.id} style={styles.plannedMealRow}>
                       <TouchableOpacity
-                        activeOpacity={0.88}
+                        style={styles.plannedMealMain}
+                        activeOpacity={0.8}
                         onPress={() => openEditMealModal(meal)}
                       >
-                        <View style={styles.mealCardWrap}>
-                          <MealCard meal={meal} />
-                          {isPlanned && (
-                            <View style={styles.plannedBadge}>
-                              <Text style={styles.plannedBadgeText}>
-                                Planned for {selectedDay}
-                              </Text>
-                            </View>
-                          )}
-                        </View>
+                        <Text style={styles.plannedMealName}>{meal.name}</Text>
+                        <Text style={styles.plannedMealMeta}>
+                          {meal.ingredients.length}{" "}
+                          {meal.ingredients.length === 1
+                            ? "ingredient"
+                            : "ingredients"}
+                        </Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity
                         onPress={() => toggleMealForSelectedDay(meal.id)}
-                        style={[
-                          styles.planToggleButton,
-                          isPlanned
-                            ? styles.planToggleButtonRemove
-                            : styles.planToggleButtonAdd,
-                        ]}
+                        style={styles.removeButton}
                       >
-                        <Text style={styles.planToggleButtonText}>
-                          {isPlanned
-                            ? `Remove from ${selectedDay}`
-                            : `Add to ${selectedDay}`}
-                        </Text>
+                        <Text style={styles.removeButtonText}>Remove</Text>
                       </TouchableOpacity>
                     </View>
-                  );
-                })}
-              </View>
-            </MyCollapsibleSection>
+                  ))}
+                </View>
+              )}
+            </View>
 
-            <MyCollapsibleSection title="Profile-Based Targets">
-              <View style={styles.infoCard}>
-                <Text style={styles.infoTitle}>Your target summary</Text>
-                <Text style={styles.infoText}>
-                  This section can later connect to your UserProfileContext and
-                  show calories, protein, carbs, fats, and meal
-                  recommendations.
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Add meals to {selectedDay}</Text>
+
+              {meals.length === 0 ? (
+                <Text style={styles.emptyText}>
+                  No saved meals yet. Add meals in the Saved tab first.
                 </Text>
-              </View>
-            </MyCollapsibleSection>
+              ) : (
+                <View style={styles.quickPlanList}>
+                  {meals.map((meal) => {
+                    const isPlanned = isMealPlannedForSelectedDay(meal.id);
 
-            <MyCollapsibleSection title="Planned Daily Average">
-              <View style={styles.infoCard}>
-                <Text style={styles.infoTitle}>Daily average</Text>
-                <Text style={styles.infoText}>
-                  This section can later show your average daily calories and
-                  macros based on saved meals and your weekly meal plan.
-                </Text>
-              </View>
-            </MyCollapsibleSection>
-          </>
-        )}
+                    return (
+                      <View key={meal.id} style={styles.quickPlanRow}>
+                        <View style={styles.quickPlanTextWrap}>
+                          <Text style={styles.quickPlanName}>{meal.name}</Text>
+                          <Text style={styles.quickPlanMeta}>
+                            {meal.ingredients.length}{" "}
+                            {meal.ingredients.length === 1
+                              ? "ingredient"
+                              : "ingredients"}
+                          </Text>
+                        </View>
 
-        {viewMode === "matcher" && (
-          <View style={styles.matcherWrap}>
-            <MealMatcherCard meals={meals} key={stock.length} />
+                        <TouchableOpacity
+                          onPress={() => toggleMealForSelectedDay(meal.id)}
+                          style={[
+                            styles.planButton,
+                            isPlanned
+                              ? styles.planButtonRemove
+                              : styles.planButtonAdd,
+                          ]}
+                        >
+                          <Text style={styles.planButtonText}>
+                            {isPlanned ? "Added" : "Add"}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
           </View>
         )}
       </ScrollView>
 
-      {viewMode === "planner" && (
+      {(viewMode === "saved" || viewMode === "planner") && (
         <FloatingAddButton onPress={openAddMealModal} />
       )}
 
@@ -381,113 +383,88 @@ const createStyles = (colors: any) =>
       fontSize: 15,
       color: colors.textSecondary,
       marginTop: SPACING.xs,
+      lineHeight: 21,
     },
-    topTabsWrap: {
+    tabsWrap: {
       flexDirection: "row",
+      backgroundColor: colors.card,
       borderWidth: 1,
+      borderColor: colors.border,
       borderRadius: 18,
       padding: 6,
       marginBottom: SPACING.lg,
     },
-    topTab: {
+    tabButton: {
       flex: 1,
       paddingVertical: 10,
       borderRadius: 12,
       alignItems: "center",
     },
-    topTabText: {
-      fontSize: 14,
-      fontWeight: "700",
+    tabButtonActive: {
+      backgroundColor: colors.primary,
     },
-    topTabTextActive: {
-      color: "#FFFFFF",
-    },
-    summaryRow: {
-      flexDirection: "row",
-      gap: SPACING.md,
-      marginBottom: SPACING.md,
-    },
-    sectionCard: {
-      backgroundColor: colors.card,
-      borderRadius: 20,
-      padding: SPACING.lg,
-      borderWidth: 1,
-      borderColor: colors.border,
-      marginBottom: SPACING.lg,
-    },
-    sectionTitle: {
-      fontSize: 18,
-      fontWeight: "700",
-      color: colors.text,
-      marginBottom: SPACING.md,
-    },
-    mealsList: {
-      gap: SPACING.md,
-      marginTop: SPACING.sm,
-    },
-    savedMealsHeader: {
-      marginTop: SPACING.sm,
-      marginBottom: SPACING.sm,
-    },
-    savedMealsHelper: {
+    tabText: {
       fontSize: 13,
+      fontWeight: "800",
       color: colors.textSecondary,
-      lineHeight: 18,
     },
-    savedMealItem: {
-      gap: SPACING.sm,
+    tabTextActive: {
+      color: colors.background,
     },
-    mealCardWrap: {
-      position: "relative",
+    section: {
+      gap: SPACING.md,
     },
-    plannedBadge: {
-      position: "absolute",
-      top: 12,
-      right: 12,
-      backgroundColor: colors.primary,
-      paddingHorizontal: 10,
-      paddingVertical: 6,
-      borderRadius: 999,
-    },
-    plannedBadgeText: {
-      color: "#FFFFFF",
-      fontSize: 11,
-      fontWeight: "700",
-    },
-    planToggleButton: {
-      borderRadius: 12,
-      paddingVertical: 12,
-      alignItems: "center",
-    },
-    planToggleButtonAdd: {
-      backgroundColor: colors.primary,
-    },
-    planToggleButtonRemove: {
-      backgroundColor: "#b91c1c",
-    },
-    planToggleButtonText: {
-      color: "#FFFFFF",
-      fontSize: 13,
-      fontWeight: "700",
-    },
-    infoCard: {
+    introCard: {
       backgroundColor: colors.card,
       borderRadius: 18,
       padding: SPACING.lg,
       borderWidth: 1,
       borderColor: colors.border,
-      marginTop: SPACING.sm,
     },
-    infoTitle: {
-      fontSize: 16,
-      fontWeight: "700",
+    sectionTitle: {
+      fontSize: 20,
+      fontWeight: "800",
       color: colors.text,
-      marginBottom: SPACING.sm,
+      marginBottom: 6,
     },
-    infoText: {
+    helperText: {
       fontSize: 14,
       lineHeight: 20,
       color: colors.textSecondary,
+    },
+    card: {
+      backgroundColor: colors.card,
+      borderRadius: 18,
+      padding: SPACING.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    cardTitle: {
+      fontSize: 17,
+      fontWeight: "800",
+      color: colors.text,
+      marginBottom: SPACING.md,
+    },
+    emptyCard: {
+      backgroundColor: colors.card,
+      borderRadius: 18,
+      padding: SPACING.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    emptyTitle: {
+      fontSize: 17,
+      fontWeight: "800",
+      color: colors.text,
+      marginBottom: 6,
+    },
+    emptyText: {
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.textSecondary,
+    },
+    mealsList: {
+      gap: SPACING.md,
     },
     plannedMealsList: {
       gap: SPACING.sm,
@@ -496,7 +473,7 @@ const createStyles = (colors: any) =>
       flexDirection: "row",
       alignItems: "center",
       gap: SPACING.sm,
-      backgroundColor: colors.background,
+      backgroundColor: colors.surface,
       borderRadius: 14,
       paddingVertical: 12,
       paddingHorizontal: 12,
@@ -506,13 +483,9 @@ const createStyles = (colors: any) =>
     plannedMealMain: {
       flex: 1,
     },
-    plannedMealTextWrap: {
-      flex: 1,
-      paddingRight: SPACING.sm,
-    },
     plannedMealName: {
       fontSize: 15,
-      fontWeight: "700",
+      fontWeight: "800",
       color: colors.text,
       marginBottom: 2,
     },
@@ -520,18 +493,61 @@ const createStyles = (colors: any) =>
       fontSize: 12,
       color: colors.textSecondary,
     },
-    removePlannedButton: {
-      backgroundColor: colors.primary,
+    removeButton: {
+      backgroundColor: colors.danger,
       borderRadius: 10,
       paddingHorizontal: 12,
       paddingVertical: 8,
     },
-    removePlannedButtonText: {
-      color: "#FFFFFF",
+    removeButtonText: {
+      color: colors.background,
       fontSize: 12,
-      fontWeight: "700",
+      fontWeight: "800",
     },
-    matcherWrap: {
-      marginTop: SPACING.xs,
+    quickPlanList: {
+      gap: SPACING.sm,
+    },
+    quickPlanRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: SPACING.sm,
+      backgroundColor: colors.surface,
+      borderRadius: 14,
+      padding: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    quickPlanTextWrap: {
+      flex: 1,
+    },
+    quickPlanName: {
+      fontSize: 15,
+      fontWeight: "800",
+      color: colors.text,
+      marginBottom: 2,
+    },
+    quickPlanMeta: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    planButton: {
+      borderRadius: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 9,
+      minWidth: 70,
+      alignItems: "center",
+    },
+    planButtonAdd: {
+      backgroundColor: colors.primary,
+    },
+    planButtonRemove: {
+      backgroundColor: colors.surfaceSoft,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    planButtonText: {
+      color: colors.background,
+      fontSize: 12,
+      fontWeight: "800",
     },
   });

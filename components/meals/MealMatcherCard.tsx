@@ -27,6 +27,8 @@ export default function MealMatcherCard({ meals }: Props) {
     return stock.map((item) => ({
       id: item.id,
       name: item.name,
+      quantity: item.quantity,
+      unit: item.unit,
     }));
   }, [stock]);
 
