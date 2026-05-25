@@ -1,7 +1,7 @@
 // components/meals/MealMatcherCard.tsx
 
 import React, { useMemo } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Alert, StyleSheet, Text, View } from "react-native";
 
 import MealMatcherResultCard from "@/components/meals/MealMatcherResultCard";
 import {
@@ -19,7 +19,7 @@ type Props = {
 
 export default function MealMatcherCard({ meals }: Props) {
   const { colors } = useAppTheme();
-  const { stock } = useStock();
+  const { stock, cookMeal } = useStock();
 
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -35,6 +35,19 @@ export default function MealMatcherCard({ meals }: Props) {
   const matches: MealMatchResult[] = useMemo(() => {
     return getMealMatches(meals, pantryItems);
   }, [meals, pantryItems]);
+
+  const handleCookMeal = async (mealId: string, mealName: string) => {
+    const meal = meals.find((item) => item.id === mealId);
+
+    if (!meal) {
+      Alert.alert("Meal not found", "This meal could not be cooked.");
+      return;
+    }
+
+    await cookMeal(meal);
+
+    Alert.alert("Meal cooked", `${mealName} has been removed from your stock.`);
+  };
 
   return (
     <View style={styles.card}>
@@ -55,6 +68,7 @@ export default function MealMatcherCard({ meals }: Props) {
             mealName={match.mealName}
             matchPercent={match.matchPercentage}
             missingIngredients={match.missingIngredients}
+            onCookMeal={() => handleCookMeal(match.mealId, match.mealName)}
           />
         ))
       )}

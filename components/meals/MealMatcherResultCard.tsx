@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import AddMissingIngredientsButton from "@/components/meals/AddMissingIngredientsButton";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -14,12 +14,14 @@ type MealMatcherResultCardProps = {
   mealName: string;
   matchPercent: number;
   missingIngredients: MissingIngredient[];
+  onCookMeal?: () => void;
 };
 
 export default function MealMatcherResultCard({
   mealName,
   matchPercent,
   missingIngredients,
+  onCookMeal,
 }: MealMatcherResultCardProps) {
   const { colors } = useAppTheme();
 
@@ -80,6 +82,18 @@ export default function MealMatcherResultCard({
           Almost ready 👀
         </Text>
       ) : null}
+
+      {isReadyToCook && onCookMeal && (
+        <TouchableOpacity
+          style={[styles.cookButton, { backgroundColor: colors.success }]}
+          onPress={onCookMeal}
+          activeOpacity={0.85}
+        >
+          <Text style={[styles.cookButtonText, { color: colors.background }]}>
+            Cook meal
+          </Text>
+        </TouchableOpacity>
+      )}
 
       {missingIngredients.length > 0 && (
         <>
@@ -147,6 +161,17 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 14,
     fontWeight: "700",
+  },
+  cookButton: {
+    marginTop: 12,
+    borderRadius: 999,
+    paddingVertical: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cookButtonText: {
+    fontSize: 14,
+    fontWeight: "800",
   },
   sectionLabel: {
     marginTop: 10,
